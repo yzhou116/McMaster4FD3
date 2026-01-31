@@ -1,0 +1,9 @@
+fastmcp
+python-dotenv
+google-genai
+pypdf
+pymupdf
+pytesseract
+pillow
+python-docx
+scikit-learn
