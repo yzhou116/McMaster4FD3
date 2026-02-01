@@ -3,87 +3,142 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>MCP Chat</title>
+  <title>MCP Chat Vault</title>
   <style>
-    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; margin: 0; background: #0b0f17; color: #e8eefc; }
-    .wrap { max-width: 900px; margin: 0 auto; padding: 24px; }
+    body { font-family: system-ui, sans-serif; margin: 0; background: #0b0f17; color: #e8eefc; }
+    .wrap { max-width: 1000px; margin: 0 auto; padding: 20px; display: flex; gap: 20px; }
+    #auth-overlay { position: fixed; inset: 0; background: #0b0f17; display: flex; align-items: center; justify-content: center; z-index: 100; }
+    .sidebar { width: 250px; background: #111827; padding: 15px; border-radius: 12px; border: 1px solid #1f2a44; }
+    .main { flex: 1; display: flex; flex-direction: column; gap: 10px; }
     .card { background: #111827; border: 1px solid #1f2a44; border-radius: 12px; overflow: hidden; }
-    .header { padding: 14px 16px; border-bottom: 1px solid #1f2a44; font-weight: 600; }
-    .msgs { height: 65vh; overflow: auto; padding: 16px; display: flex; flex-direction: column; gap: 12px; }
-    .msg { max-width: 80%; padding: 10px 12px; border-radius: 12px; line-height: 1.35; white-space: pre-wrap; }
+    .msgs { height: 60vh; overflow: auto; padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+    .msg { max-width: 80%; padding: 10px 12px; border-radius: 12px; line-height: 1.4; }
     .user { align-self: flex-end; background: #2563eb; color: white; }
-    .bot  { align-self: flex-start; background: #0f172a; border: 1px solid #1f2a44; }
+    .bot { align-self: flex-start; background: #0f172a; border: 1px solid #1f2a44; }
     .row { display: flex; gap: 10px; padding: 12px; border-top: 1px solid #1f2a44; }
-    input { flex: 1; padding: 10px 12px; border-radius: 10px; border: 1px solid #1f2a44; background: #0b1224; color: #e8eefc; }
-    button { padding: 10px 14px; border-radius: 10px; border: 1px solid #1f2a44; background: #111827; color: #e8eefc; cursor: pointer; }
-    button:disabled { opacity: 0.6; cursor: not-allowed; }
-    .hint { margin-top: 10px; opacity: 0.8; font-size: 12px; }
+    input, select, button { padding: 8px 12px; border-radius: 8px; border: 1px solid #1f2a44; background: #0b1224; color: white; }
+    button { cursor: pointer; background: #1f2a44; }
+    .hidden { display: none !important; }
   </style>
 </head>
 <body>
+  <div id="auth-overlay">
+    <div class="card" style="padding: 20px; width: 300px;">
+      <h3 style="margin-top:0">Login</h3>
+      <input id="username" placeholder="Username (admin)" style="width: 100%; box-sizing: border-box; margin-bottom: 10px;" />
+      <input id="password" type="password" placeholder="Password (password123)" style="width: 100%; box-sizing: border-box; margin-bottom: 10px;" />
+      <button id="login-btn" style="width: 100%;">Login</button>
+    </div>
+  </div>
   <div class="wrap">
-    <div class="card">
-      <div class="header">LocalDocs-OCR-RAG — Chat</div>
-      <div id="msgs" class="msgs"></div>
-      <div class="row">
-        <input id="input" placeholder="Type a message and press Enter..." />
-        <button id="send">Send</button>
+    <div class="sidebar">
+      <h4>Folders</h4>
+      <select id="folder-list" style="width: 100%; margin-bottom: 10px;"></select>
+      <input id="new-folder-name" placeholder="Folder Name" style="width: 100%; box-sizing: border-box; margin-bottom: 5px;"/>
+      <button onclick="createFolder()" style="width: 100%; margin-bottom: 20px;">+ New Folder</button>
+      <h4>Upload</h4>
+      <input type="file" id="file-picker" multiple style="width: 100%; font-size: 12px; margin-bottom: 10px;"/>
+      <button onclick="uploadFiles()" style="width: 100%;">Upload Files</button>
+    </div>
+    <div class="main">
+      <div class="card">
+        <div id="msgs" class="msgs"></div>
+        <div class="row">
+          <input id="input" style="flex:1" placeholder="Type a message..." />
+          <button id="send">Send</button>
+        </div>
       </div>
     </div>
-    <div class="hint">Backend must be running at http://127.0.0.1:8000</div>
   </div>
-
   <script>
-    const API_BASE = "http://127.0.0.1:8000";
-    const msgs = document.getElementById("msgs");
-    const input = document.getElementById("input");
-    const sendBtn = document.getElementById("send");
+    const API_BASE = window.location.origin;
+    let TOKEN = "";
+
+    async function login() {
+      const u = document.getElementById("username").value;
+      const p = document.getElementById("password").value;
+      const params = new URLSearchParams();
+      params.append('username', u);
+      params.append('password', p);
+
+      try {
+        const r = await fetch(`${API_BASE}/login`, { 
+          method: "POST", 
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          body: params 
+        });
+        if (r.ok) {
+          const data = await r.json();
+          TOKEN = data.access_token;
+          document.getElementById("auth-overlay").classList.add("hidden");
+          loadFolders();
+        } else {
+          const err = await r.json();
+          alert("Login Failed: " + JSON.stringify(err.detail));
+        }
+      } catch (e) {
+        alert("Server connection error: " + e.message);
+      }
+    }
+
+    async function loadFolders() {
+      const r = await fetch(`${API_BASE}/folders`, { headers: { "Authorization": `Bearer ${TOKEN}` } });
+      const folders = await r.json();
+      const sel = document.getElementById("folder-list");
+      sel.innerHTML = folders.map(f => `<option value="${f}">${f}</option>`).join("");
+    }
+
+    async function createFolder() {
+      const name = document.getElementById("new-folder-name").value;
+      if (!name) return;
+      await fetch(`${API_BASE}/folders/${name}`, { 
+        method: "POST", 
+        headers: { "Authorization": `Bearer ${TOKEN}` } 
+      });
+      document.getElementById("new-folder-name").value = "";
+      loadFolders();
+    }
+
+    async function uploadFiles() {
+      const folder = document.getElementById("folder-list").value;
+      const files = document.getElementById("file-picker").files;
+      if (!folder || files.length === 0) return;
+      const fd = new FormData();
+      for (let f of files) fd.append("files", f);
+      await fetch(`${API_BASE}/upload/${folder}`, {
+        method: "POST",
+        headers: { "Authorization": `Bearer ${TOKEN}` },
+        body: fd
+      });
+      alert("Uploaded");
+    }
+
+    async function send() {
+      const text = document.getElementById("input").value.trim();
+      if (!text) return;
+      addMsg(text, "user");
+      document.getElementById("input").value = "";
+      const r = await fetch(`${API_BASE}/chat`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${TOKEN}` },
+        body: JSON.stringify({ message: text })
+      });
+      const data = await r.json();
+      addMsg(data.answer, "bot");
+    }
 
     function addMsg(text, who) {
       const div = document.createElement("div");
       div.className = `msg ${who}`;
       div.textContent = text;
-      msgs.appendChild(div);
-      msgs.scrollTop = msgs.scrollHeight;
+      const m = document.getElementById("msgs");
+      m.appendChild(div);
+      m.scrollTop = m.scrollHeight;
     }
 
-    async function send() {
-      const text = input.value.trim();
-      if (!text) return;
-      input.value = "";
-      addMsg(text, "user");
-
-      sendBtn.disabled = true;
-      input.disabled = true;
-
-      try {
-        const r = await fetch(`${API_BASE}/chat`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ message: text })
-        });
-
-        const data = await r.json();
-        if (!r.ok) {
-          addMsg(`Error: ${data?.detail || JSON.stringify(data)}`, "bot");
-        } else {
-          addMsg(data.answer ?? "(no answer)", "bot");
-        }
-      } catch (e) {
-        addMsg(`Network error: ${e}`, "bot");
-      } finally {
-        sendBtn.disabled = false;
-        input.disabled = false;
-        input.focus();
-      }
-    }
-
-    sendBtn.addEventListener("click", send);
-    input.addEventListener("keydown", (e) => {
-      if (e.key === "Enter") send();
-    });
-
-    addMsg("Hi. Ask me something about your ingested docs.", "bot");
+    document.getElementById("login-btn").onclick = login;
+    document.getElementById("send").onclick = send;
+    document.getElementById("input").onkeydown = (e) => { if(e.key === "Enter") send(); };
   </script>
 </body>
 </html>

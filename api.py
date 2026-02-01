@@ -1,70 +1,50 @@
-from fastapi import FastAPI
+import os
+import shutil
+from fastapi import FastAPI, Depends, HTTPException, UploadFile, File
+from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from pydantic import BaseModel
-
+from typing import List
 from server import mcp, STATE, ingest_docs_impl, ask_impl
-from server import list_docs_impl, get_doc_text_impl, ingest_docs_impl, STATE
-# Optional MCP HTTP app (handy for debugging)
-mcp_app = mcp.http_app(path="/")
 
+mcp_app = mcp.http_app(path="/")
 api = FastAPI(lifespan=mcp_app.lifespan)
 
 api.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],       # dev only
-    allow_credentials=False,
+    allow_origins=["*"],
+    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-class ChatRequest(BaseModel):
-    message: str
-    docs_dir: str | None = None
+UPLOAD_ROOT = os.path.join(os.getcwd(), "user_vaults")
+os.makedirs(UPLOAD_ROOT, exist_ok=True)
 
-@api.get("/health")
-def health():
-    return {"status": "ok"}
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
+USERS_DB = {
+    "admin": "password123",
+    "user1": "mypassword",
+}
 
-@api.get("/debug/ingest")
-def debug_ingest():
-    # Force ingest and return stats
-    result = ingest_docs_impl("my_docs")
-    return {
-        "ingest_result": result,
-        "is_ready": STATE.is_ready,
-        "docs_dir": STATE.docs_dir,
-        "file_count": len(STATE.files),
-        "chunk_count": len(STATE.index.get("metas", [])) if STATE.index else None,
-    }
+def get_current_user(token: str = Depends(oauth2_scheme)):
+    if token not in USERS_DB:
+        raise HTTPException(status_code=401, detail="Invalid token")
+    return token
 
-@api.get("/debug/docs")
-def debug_docs():
-    return {
-        "docs_dir": STATE.docs_dir,
-        "docs": list_docs_impl(),
-    }
+@api.get("/")
+async def serve_index():
+    return FileResponse('chatwindow.html')
 
-@api.get("/debug/doc_text")
-def debug_doc_text(filename: str, max_chars: int = 1200):
-    return {
-        "filename": filename,
-        "preview": get_doc_text_impl(filename, max_chars=max_chars),
-    }
+@api.post("/login")
+async def login(form_data: OAuth2PasswordRequestForm = Depends()):
+    user_pw = USERS_DB.get(form_data.username)
+    if not user_pw or form_data.password != user_pw:
+        raise HTTPException(status_code=400, detail="Incorrect username or password")
+    return {"access_token": form_data.username, "token_type": "bearer"}
 
-@api.post("/chat")
-def chat(req: ChatRequest):
-    # Ingest docs if needed
-    if req.docs_dir:
-        result = ingest_docs_impl(req.docs_dir)
-        if not result.get("ok", False):
-            return {"answer": f"Error: {result.get('error', 'unknown ingest error')}"}
-    elif not STATE.is_ready:
-        result = ingest_docs_impl("my_docs")
-        if not result.get("ok", False):
-            return {"answer": f"Error: {result.get('error', 'unknown ingest error')}"}
-
-    answer = ask_impl(req.message)
-    return {"answer": answer}
-
-# Optional: expose MCP endpoints at /mcp
-api.mount("/mcp", mcp_app)
+@api.get("/folders")
+async def list_folders(user: str = Depends(get_current_user)):
+    user_path = os.path.join(UPLOAD_ROOT, user)
+    if not os.path.exists(user_path): return []
