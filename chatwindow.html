@@ -21,19 +21,19 @@
     button:hover { background: #334155; }
     .hidden { display: none !important; }
     h4 { margin: 0 0 5px 0; color: #94a3b8; font-size: 0.9em; text-transform: uppercase; letter-spacing: 0.05em; }
-    
-    /* Thinking Dropdown Styles */
     details > summary { list-style: none; outline: none; }
     details > summary::-webkit-details-marker { display: none; }
     details[open] summary { margin-bottom: 10px; border-bottom: 1px solid #334155; padding-bottom: 5px; }
+    .file-item { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; padding-bottom: 4px; border-bottom: 1px solid #1f2a44; font-size: 13px; }
+    .btn-del { background: #ef4444; padding: 2px 8px; font-size: 10px; border: none; }
   </style>
 </head>
 <body>
   <div id="auth-overlay">
     <div class="card" style="padding: 30px; width: 320px; height: auto;">
       <h2 style="margin-top:0; text-align: center;">Login</h2>
-      <input id="username" placeholder="Username (admin)" style="width: 100%; box-sizing: border-box; margin-bottom: 15px;" />
-      <input id="password" type="password" placeholder="Password (password123)" style="width: 100%; box-sizing: border-box; margin-bottom: 20px;" />
+      <input id="username" placeholder="Username" style="width: 100%; box-sizing: border-box; margin-bottom: 15px;" />
+      <input id="password" type="password" placeholder="Password" style="width: 100%; box-sizing: border-box; margin-bottom: 20px;" />
       <button id="login-btn" style="width: 100%; background: #2563eb; border: none;">Login</button>
     </div>
   </div>
@@ -50,9 +50,14 @@
       </div>
       <hr style="width: 100%; border: 0; border-top: 1px solid #1f2a44;">
       <div>
-        <h4>⬆️ Upload to Vault</h4>
+        <h4>⬆️ Upload</h4>
         <input type="file" id="file-picker" multiple style="width: 100%; font-size: 12px; margin-bottom: 10px;"/>
         <button onclick="uploadFiles()" style="width: 100%;">Upload Files</button>
+      </div>
+      <hr style="width: 100%; border: 0; border-top: 1px solid #1f2a44;">
+      <div style="flex: 1; overflow-y: auto;">
+        <h4>📄 Files</h4>
+        <div id="file-list" style="margin-top: 10px;"></div>
       </div>
     </div>
 
@@ -71,10 +76,9 @@
   </div>
 
   <script>
-    const API_BASE = window.location.origin; // e.g. http://127.0.0.1:8000
+    const API_BASE = window.location.origin;
     let TOKEN = "";
 
-    // --- Authentication ---
     async function login() {
       const u = document.getElementById("username").value;
       const p = document.getElementById("password").value;
@@ -94,21 +98,20 @@
           document.getElementById("auth-overlay").classList.add("hidden");
           loadFolders();
         } else {
-          const err = await r.json();
-          alert("Login Failed: " + (err.detail || "Unknown error"));
+          alert("Login Failed");
         }
       } catch (e) {
-        alert("Server connection error: " + e.message);
+        alert("Connection error: " + e.message);
       }
     }
 
-    // --- File Management ---
     async function loadFolders() {
       const r = await fetch(`${API_BASE}/folders`, { headers: { "Authorization": `Bearer ${TOKEN}` } });
       if (r.ok) {
         const folders = await r.json();
         const sel = document.getElementById("folder-list");
         sel.innerHTML = folders.map(f => `<option value="${f}">${f}</option>`).join("");
+        loadFiles();
       }
     }
 
@@ -123,127 +126,108 @@
       loadFolders();
     }
 
+    async function loadFiles() {
+      const folder = document.getElementById("folder-list").value;
+      if (!folder) return;
+      const r = await fetch(`${API_BASE}/files/${folder}`, { headers: { "Authorization": `Bearer ${TOKEN}` } });
+      if (r.ok) {
+        const files = await r.json();
+        const container = document.getElementById("file-list");
+        container.innerHTML = files.map(f => `
+          <div class="file-item">
+            <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 180px;">${f}</span>
+            <button class="btn-del" onclick="deleteFile('${f}')">Delete</button>
+          </div>
+        `).join("");
+      }
+    }
+
+    async function deleteFile(fileName) {
+      const folder = document.getElementById("folder-list").value;
+      if (!confirm("Delete " + fileName + "?")) return;
+      const r = await fetch(`${API_BASE}/files/${folder}/${fileName}`, {
+        method: "DELETE",
+        headers: { "Authorization": `Bearer ${TOKEN}` }
+      });
+      if (r.ok) loadFiles();
+    }
+
     async function uploadFiles() {
       const folder = document.getElementById("folder-list").value;
       const files = document.getElementById("file-picker").files;
-      if (!folder || files.length === 0) {
-        alert("Please select a folder and files first.");
-        return;
-      }
+      if (!folder || files.length === 0) return;
       
       const fd = new FormData();
       for (let f of files) fd.append("files", f);
       
-      const btn = document.querySelector("button[onclick='uploadFiles()']");
-      const oldText = btn.innerText;
-      btn.innerText = "Uploading...";
-      btn.disabled = true;
-
-      try {
-        const r = await fetch(`${API_BASE}/upload/${folder}`, {
-            method: "POST",
-            headers: { "Authorization": `Bearer ${TOKEN}` },
-            body: fd
-        });
-        if(r.ok) alert("Upload Successful!");
-        else alert("Upload Failed");
-      } finally {
-        btn.innerText = oldText;
-        btn.disabled = false;
+      const r = await fetch(`${API_BASE}/upload/${folder}`, {
+          method: "POST",
+          headers: { "Authorization": `Bearer ${TOKEN}` },
+          body: fd
+      });
+      if(r.ok) {
+        alert("Uploaded");
+        loadFiles();
       }
     }
 
-    // --- Chat Logic ---
-    
-    // 1. Helper to display messages (supports HTML)
     function addMsg(content, who, isHtml = false) {
       const div = document.createElement("div");
       div.className = `msg ${who}`;
       if (isHtml) div.innerHTML = content;
       else div.innerText = content;
-      
       const m = document.getElementById("msgs");
       m.appendChild(div);
       m.scrollTop = m.scrollHeight;
       return div;
     }
 
-    // 2. Parser for <thinking> tags
     function formatResponse(rawText) {
       const thoughtMatch = rawText.match(/<thinking>([\s\S]*?)<\/thinking>/);
-      
       if (thoughtMatch) {
         const thoughtContent = thoughtMatch[1].trim();
         const finalAnswer = rawText.replace(/<thinking>[\s\S]*?<\/thinking>/, "").trim();
-        
         return `
           <details style="margin-bottom: 10px; border: 1px solid #334155; border-radius: 8px; padding: 8px; background: #1e293b;">
-            <summary style="cursor: pointer; color: #94a3b8; font-size: 0.9em; font-weight: 600;">
-              👁️ View AI Thought Process
-            </summary>
-            <div style="margin-top: 8px; font-size: 0.9em; color: #cbd5e1; white-space: pre-wrap; border-top: 1px solid #334155; padding-top: 8px;">${thoughtContent}</div>
+            <summary style="cursor: pointer; color: #94a3b8; font-size: 0.9em; font-weight: 600;">👁️ Thought Process</summary>
+            <div style="margin-top: 8px; font-size: 0.9em; color: #cbd5e1; white-space: pre-wrap;">${thoughtContent}</div>
           </details>
           <div>${finalAnswer}</div>
         `;
       }
-      return rawText; // Return plain text if no thinking tags
+      return rawText;
     }
 
     async function send() {
       const inputEl = document.getElementById("input");
       const text = inputEl.value.trim();
-      const sendBtn = document.getElementById("send");
-      const folder = document.getElementById("folder-list").value; // Send context about folder if needed
-
+      const folder = document.getElementById("folder-list").value;
       if (!text) return;
-      
       inputEl.value = "";
       addMsg(text, "user");
-      
-      inputEl.disabled = true;
-      sendBtn.disabled = true;
-
-      // Temp loading message
       const loadingDiv = addMsg("Thinking...", "bot");
-      loadingDiv.style.opacity = "0.7";
-
       try {
-        // We pass the currently selected folder as docs_dir to the API
         const payload = { 
             message: text,
             docs_dir: folder ? `user_vaults/${TOKEN}/${folder}` : null 
         };
-
         const r = await fetch(`${API_BASE}/chat`, {
           method: "POST",
           headers: { "Content-Type": "application/json", "Authorization": `Bearer ${TOKEN}` },
           body: JSON.stringify(payload)
         });
-        
         const data = await r.json();
-        
-        loadingDiv.remove(); // Remove "Thinking..."
-        
-        if (data.answer) {
-            const formatted = formatResponse(data.answer);
-            addMsg(formatted, "bot", true);
-        } else {
-            addMsg("Error: No answer received.", "bot");
-        }
-
+        loadingDiv.remove();
+        if (data.answer) addMsg(formatResponse(data.answer), "bot", true);
       } catch (e) {
         loadingDiv.innerText = "Error: " + e.message;
-      } finally {
-        inputEl.disabled = false;
-        sendBtn.disabled = false;
-        inputEl.focus();
       }
     }
 
-    // --- Init ---
     document.getElementById("login-btn").onclick = login;
     document.getElementById("send").onclick = send;
     document.getElementById("input").onkeydown = (e) => { if(e.key === "Enter") send(); };
+    document.getElementById("folder-list").onchange = loadFiles;
   </script>
 </body>
 </html>

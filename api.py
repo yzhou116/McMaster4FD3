@@ -100,6 +100,28 @@ async def upload_files_endpoint(folder_name: str, files: List[UploadFile] = File
         
     return {"status": "success", "files": saved_files}
 
+@api.get("/files/{folder_name}")
+async def list_files(folder_name: str, user: str = Depends(get_current_user)):
+    user_path = os.path.join(UPLOAD_ROOT, user, folder_name)
+    if not os.path.exists(user_path):
+        return []
+    return [f for f in os.listdir(user_path) if os.path.isfile(os.path.join(user_path, f))]
+
+@api.delete("/files/{folder_name}/{file_name}")
+async def delete_file(folder_name: str, file_name: str, user: str = Depends(get_current_user)):
+    file_path = os.path.join(UPLOAD_ROOT, user, folder_name, file_name)
+    
+    if not os.path.exists(file_path):
+        raise HTTPException(status_code=404, detail="File not found")
+    
+    try:
+        os.remove(file_path)
+        user_folder_path = os.path.join(UPLOAD_ROOT, user, folder_name)
+        ingest_docs_impl(user_folder_path, force=True)
+        return {"status": "deleted"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 @api.post("/chat")
 def chat(req: ChatRequest, user: str = Depends(get_current_user)):
     # 1. Determine Target Directory
