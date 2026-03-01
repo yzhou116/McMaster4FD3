@@ -26,6 +26,19 @@
     details[open] summary { margin-bottom: 10px; border-bottom: 1px solid #334155; padding-bottom: 5px; }
     .file-item { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; padding-bottom: 4px; border-bottom: 1px solid #1f2a44; font-size: 13px; }
     .btn-del { background: #ef4444; padding: 2px 8px; font-size: 10px; border: none; }
+    .google-btn { 
+      width: 100%; 
+      background: white; 
+      color: #333; 
+      border: 1px solid #dadce0; 
+      padding: 10px 12px; 
+      border-radius: 8px; 
+      cursor: pointer; 
+      font-weight: 500; 
+      margin-top: 15px;
+      transition: background 0.2s;
+    }
+    .google-btn:hover { background: #f8f9fa; }
   </style>
 </head>
 <body>
@@ -35,10 +48,20 @@
       <input id="username" placeholder="Username" style="width: 100%; box-sizing: border-box; margin-bottom: 15px;" />
       <input id="password" type="password" placeholder="Password" style="width: 100%; box-sizing: border-box; margin-bottom: 20px;" />
       <button id="login-btn" style="width: 100%; background: #2563eb; border: none;">Login</button>
+      <button class="google-btn" onclick="window.location.href='/auth/google'">
+        🔐 Login with Google
+      </button>
     </div>
   </div>
 
   <div class="wrap">
+    <div style="position: absolute; top: 10px; right: 20px; color: #e8eefc; font-size: 14px; z-index: 50;">
+      <span id="user-info" style="display: none;">
+        Welcome, <strong id="user-name"></strong> (<span id="user-email"></span>)
+        <button id="logout-btn" style="margin-left: 15px; padding: 5px 10px; background: #ef4444; border: none; border-radius: 6px; cursor: pointer;">Logout</button>
+      </span>
+    </div>
+
     <div class="sidebar">
       <div>
         <h4>📂 Folders</h4>
@@ -78,6 +101,59 @@
   <script>
     const API_BASE = window.location.origin;
     let TOKEN = "";
+    let USER_NAME = "";
+    let USER_EMAIL = "";
+
+    // Check if user is already logged in (from localStorage)
+    function checkExistingLogin() {
+      const savedToken = localStorage.getItem('token');
+      const savedName = localStorage.getItem('userName');
+      const savedEmail = localStorage.getItem('userEmail');
+      
+      if (savedToken) {
+        TOKEN = savedToken;
+        USER_NAME = savedName || 'User';
+        USER_EMAIL = savedEmail || 'unknown';
+        showAuthSuccess();
+        return true;
+      }
+      return false;
+    }
+
+    function showAuthSuccess() {
+      // Hide login overlay
+      document.getElementById("auth-overlay").classList.add("hidden");
+      
+      // Show user info at top right
+      document.getElementById("user-info").style.display = "inline";
+      document.getElementById("user-name").innerText = USER_NAME;
+      document.getElementById("user-email").innerText = USER_EMAIL;
+      
+      // Load user's folders
+      loadFolders();
+    }
+
+    function logout() {
+      // Clear localStorage
+      localStorage.removeItem('token');
+      localStorage.removeItem('userName');
+      localStorage.removeItem('userEmail');
+      localStorage.removeItem('loginMethod');
+      
+      // Reset variables
+      TOKEN = "";
+      USER_NAME = "";
+      USER_EMAIL = "";
+      
+      // Show login overlay
+      document.getElementById("auth-overlay").classList.remove("hidden");
+      document.getElementById("user-info").style.display = "none";
+      
+      // Clear chat and inputs
+      document.getElementById("msgs").innerHTML = "";
+      document.getElementById("username").value = "";
+      document.getElementById("password").value = "";
+    }
 
     async function login() {
       const u = document.getElementById("username").value;
@@ -95,10 +171,18 @@
         if (r.ok) {
           const data = await r.json();
           TOKEN = data.access_token;
-          document.getElementById("auth-overlay").classList.add("hidden");
-          loadFolders();
+          USER_NAME = u;
+          USER_EMAIL = u;
+          
+          // Save to localStorage
+          localStorage.setItem('token', TOKEN);
+          localStorage.setItem('userName', USER_NAME);
+          localStorage.setItem('userEmail', USER_EMAIL);
+          localStorage.setItem('loginMethod', 'basic');
+          
+          showAuthSuccess();
         } else {
-          alert("Login Failed");
+          alert("Login Failed: Invalid username or password");
         }
       } catch (e) {
         alert("Connection error: " + e.message);
@@ -228,6 +312,19 @@
     document.getElementById("send").onclick = send;
     document.getElementById("input").onkeydown = (e) => { if(e.key === "Enter") send(); };
     document.getElementById("folder-list").onchange = loadFiles;
+    document.getElementById("logout-btn").onclick = logout;
+    
+    // Check if user is already logged in when page loads
+    window.addEventListener('DOMContentLoaded', () => {
+      if (!checkExistingLogin()) {
+        document.getElementById("auth-overlay").classList.remove("hidden");
+      }
+    });
+    
+    // Also check on page load
+    if (!checkExistingLogin()) {
+      document.getElementById("auth-overlay").classList.remove("hidden");
+    }
   </script>
 </body>
 </html>

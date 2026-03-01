@@ -1,11 +1,18 @@
 import os
 import shutil
+import httpx
 from fastapi import FastAPI, Depends, HTTPException, UploadFile, File
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, RedirectResponse, HTMLResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from pydantic import BaseModel
 from typing import List
+from dotenv import load_dotenv
+from authlib.integrations.httpx_client import AsyncOAuth2Client
+import secrets
+
+# Load environment variables
+load_dotenv()
 
 # Import your server functions
 from server import mcp, STATE, ingest_docs_impl, ask_impl, main_agent_router
@@ -26,6 +33,11 @@ api.add_middleware(
 UPLOAD_ROOT = os.path.join(os.getcwd(), "user_vaults")
 os.makedirs(UPLOAD_ROOT, exist_ok=True)
 
+# Google OAuth2 Configuration
+GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID", "")
+GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET", "")
+GOOGLE_REDIRECT_URI = os.getenv("GOOGLE_REDIRECT_URI", "http://localhost:8000/auth/google/callback")
+
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
 
 # Simple User DB (In production, use a real DB)
@@ -34,13 +46,17 @@ USERS_DB = {
     "user1": "mypassword",
 }
 
-class ChatRequest(BaseModel):
+class ChatRequest(BaseModel):    
     message: str
     docs_dir: str | None = None
 
 # --- Auth Helpers ---
 def get_current_user(token: str = Depends(oauth2_scheme)):
-    if token not in USERS_DB:
+    # Check if it's an admin user or a Google email (has @ sign)
+    is_admin = token in USERS_DB
+    is_google_user = "@" in token  # Google OAuth2 tokens are email addresses
+    
+    if not (is_admin or is_google_user):
         raise HTTPException(status_code=401, detail="Invalid token")
     return token
 
@@ -62,6 +78,92 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends()):
     os.makedirs(user_path, exist_ok=True)
     
     return {"access_token": form_data.username, "token_type": "bearer"}
+
+@api.get("/auth/google")
+async def google_login():
+    """Redirect to Google OAuth2 consent screen"""
+    if not GOOGLE_CLIENT_ID or not GOOGLE_CLIENT_SECRET:
+        raise HTTPException(status_code=500, detail="Google OAuth2 not configured. Set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET in .env")
+    
+    state = secrets.token_urlsafe(32)
+    # Store state in session (in production, use a real session store)
+    
+    google_auth_url = (
+        f"https://accounts.google.com/o/oauth2/v2/auth?"
+        f"client_id={GOOGLE_CLIENT_ID}&"
+        f"redirect_uri={GOOGLE_REDIRECT_URI}&"
+        f"response_type=code&"
+        f"scope=openid%20email%20profile&"
+        f"state={state}"
+    )
+    return RedirectResponse(url=google_auth_url)
+
+@api.get("/auth/google/callback")
+async def google_callback(code: str, state: str):
+    """Handle Google OAuth2 callback"""
+    if not code:
+        raise HTTPException(status_code=400, detail="No authorization code provided")
+    
+    # Exchange code for token
+    async with httpx.AsyncClient() as client:
+        token_response = await client.post(
+            "https://oauth2.googleapis.com/token",
+            data={
+                "client_id": GOOGLE_CLIENT_ID,
+                "client_secret": GOOGLE_CLIENT_SECRET,
+                "code": code,
+                "grant_type": "authorization_code",
+                "redirect_uri": GOOGLE_REDIRECT_URI,
+            }
+        )
+        
+        if token_response.status_code != 200:
+            error_msg = "Failed to exchange code for token"
+            return FileResponse('chatwindow.html', headers={"X-Login-Error": error_msg})
+        
+        tokens = token_response.json()
+        access_token = tokens.get("access_token")
+        
+        # Get user info from Google
+        user_info_response = await client.get(
+            "https://www.googleapis.com/oauth2/v2/userinfo",
+            headers={"Authorization": f"Bearer {access_token}"}
+        )
+        
+        if user_info_response.status_code != 200:
+            error_msg = "Failed to get user info"
+            return FileResponse('chatwindow.html', headers={"X-Login-Error": error_msg})
+        
+        user_info = user_info_response.json()
+        email = user_info.get("email")
+        name = user_info.get("name", "User")
+        
+        # Create/Update user vault
+        user_path = os.path.join(UPLOAD_ROOT, email)
+        os.makedirs(user_path, exist_ok=True)
+        
+        # Return HTML page that sets localStorage and redirects
+        html_response = f"""
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Google Login Success</title>
+        </head>
+        <body>
+            <script>
+                // Store the token and user info in localStorage
+                localStorage.setItem('token', '{email}');
+                localStorage.setItem('userName', '{name}');
+                localStorage.setItem('userEmail', '{email}');
+                localStorage.setItem('loginMethod', 'google');
+                
+                // Redirect to main page
+                window.location.href = '/';
+            </script>
+        </body>
+        </html>
+        """
+        return HTMLResponse(html_response)
 
 @api.get("/folders")
 async def list_folders(user: str = Depends(get_current_user)):
