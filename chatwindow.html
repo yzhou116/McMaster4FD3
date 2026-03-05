@@ -3,99 +3,562 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>MCP Chat Vault</title>
+  <title>Gemini Document Vault</title>
+  <!-- Modern Typography -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Outfit:wght@500;600;700&display=swap" rel="stylesheet">
+  <!-- Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  
   <style>
-    body { font-family: system-ui, sans-serif; margin: 0; background: #0b0f17; color: #e8eefc; }
-    .wrap { max-width: 1200px; margin: 0 auto; padding: 20px; display: flex; gap: 20px; height: 95vh; box-sizing: border-box; }
-    #auth-overlay { position: fixed; inset: 0; background: #0b0f17; display: flex; align-items: center; justify-content: center; z-index: 100; }
-    .sidebar { width: 300px; background: #111827; padding: 20px; border-radius: 12px; border: 1px solid #1f2a44; display: flex; flex-direction: column; gap: 15px; }
-    .main { flex: 1; display: flex; flex-direction: column; gap: 10px; }
-    .card { background: #111827; border: 1px solid #1f2a44; border-radius: 12px; overflow: hidden; display: flex; flex-direction: column; height: 100%; }
-    .msgs { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 15px; scroll-behavior: smooth; }
-    .msg { max-width: 85%; padding: 12px 16px; border-radius: 12px; line-height: 1.5; word-wrap: break-word; }
-    .user { align-self: flex-end; background: #2563eb; color: white; }
-    .bot { align-self: flex-start; background: #1e293b; border: 1px solid #334155; }
-    .row { display: flex; gap: 10px; padding: 15px; border-top: 1px solid #1f2a44; background: #0f172a; }
-    input, select, button { padding: 10px 12px; border-radius: 8px; border: 1px solid #1f2a44; background: #0b1224; color: white; }
-    button { cursor: pointer; background: #1f2a44; transition: background 0.2s; }
-    button:hover { background: #334155; }
-    .hidden { display: none !important; }
-    h4 { margin: 0 0 5px 0; color: #94a3b8; font-size: 0.9em; text-transform: uppercase; letter-spacing: 0.05em; }
-    details > summary { list-style: none; outline: none; }
-    details > summary::-webkit-details-marker { display: none; }
-    details[open] summary { margin-bottom: 10px; border-bottom: 1px solid #334155; padding-bottom: 5px; }
-    .file-item { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; padding-bottom: 4px; border-bottom: 1px solid #1f2a44; font-size: 13px; }
-    .btn-del { background: #ef4444; padding: 2px 8px; font-size: 10px; border: none; }
-    .google-btn { 
-      width: 100%; 
-      background: white; 
-      color: #333; 
-      border: 1px solid #dadce0; 
-      padding: 10px 12px; 
-      border-radius: 8px; 
-      cursor: pointer; 
-      font-weight: 500; 
-      margin-top: 15px;
-      transition: background 0.2s;
+    :root {
+      /* Dark Theme (Default) */
+      --bg-dark: #030712;
+      --sidebar-bg-dark: rgba(17, 24, 39, 0.7);
+      --card-bg-dark: rgba(31, 41, 55, 0.4);
+      --text-primary-dark: #f3f4f6;
+      --text-secondary-dark: #9ca3af;
+      --border-dark: rgba(255, 255, 255, 0.1);
+      --glass-border-dark: rgba(255, 255, 255, 0.05);
+      --msg-bot-dark: rgba(31, 41, 55, 0.8);
+      --input-bg-dark: rgba(0, 0, 0, 0.2);
+      --thought-bg-dark: rgba(0, 0, 0, 0.2);
+
+      /* Light Theme */
+      --bg-light: #f8fafc;
+      --sidebar-bg-light: rgba(255, 255, 255, 0.8);
+      --card-bg-light: rgba(255, 255, 255, 0.6);
+      --text-primary-light: #0f172a;
+      --text-secondary-light: #64748b;
+      --border-light: rgba(0, 0, 0, 0.08);
+      --glass-border-light: rgba(0, 0, 0, 0.05);
+      --msg-bot-light: rgba(241, 245, 249, 0.9);
+      --input-bg-light: rgba(255, 255, 255, 0.8);
+      --thought-bg-light: rgba(241, 245, 249, 0.5);
+
+      /* Active Variables (Start Dark) */
+      --bg: var(--bg-dark);
+      --sidebar-bg: var(--sidebar-bg-dark);
+      --card-bg: var(--card-bg-dark);
+      --text-primary: var(--text-primary-dark);
+      --text-secondary: var(--text-secondary-dark);
+      --border: var(--border-dark);
+      --glass-border: var(--glass-border-dark);
+      --msg-bot: var(--msg-bot-dark);
+      --input-bg: var(--input-bg-dark);
+      --thought-bg: var(--thought-bg-dark);
+      --btn-upload-bg: var(--btn-upload-bg-dark);
+      --btn-upload-text: var(--btn-upload-text-dark);
+
+      /* Button Colors */
+      --btn-upload-bg-dark: rgba(255, 255, 255, 0.1);
+      --btn-upload-text-dark: #f3f4f6;
+      --btn-upload-bg-light: #d1d5db;
+      --btn-upload-text-light: #1f2937;
+
+      /* Shared Colors */
+      --accent: #3b82f6;
+      --accent-hover: #2563eb;
+      --msg-user: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
     }
-    .google-btn:hover { background: #f8f9fa; }
+
+    /* Light Theme Class Override */
+    body.light-mode {
+      --bg: var(--bg-light);
+      --sidebar-bg: var(--sidebar-bg-light);
+      --card-bg: var(--card-bg-light);
+      --text-primary: var(--text-primary-light);
+      --text-secondary: var(--text-secondary-light);
+      --border: var(--border-light);
+      --glass-border: var(--glass-border-light);
+      --msg-bot: var(--msg-bot-light);
+      --input-bg: var(--input-bg-light);
+      --thought-bg: var(--thought-bg-light);
+      --btn-upload-bg: var(--btn-upload-bg-light);
+      --btn-upload-text: var(--btn-upload-text-light);
+      background-image: 
+        radial-gradient(circle at 0% 0%, rgba(59, 130, 246, 0.1) 0%, transparent 50%),
+        radial-gradient(circle at 100% 100%, rgba(37, 99, 235, 0.05) 0%, transparent 50%);
+    }
+
+    * { box-sizing: border-box; transition: all 0.2s ease; }
+
+    body { 
+      font-family: 'Inter', sans-serif; 
+      margin: 0; 
+      background: var(--bg); 
+      color: var(--text-primary);
+      height: 100vh;
+      overflow: hidden;
+      background-image: 
+        radial-gradient(circle at 0% 0%, rgba(59, 130, 246, 0.05) 0%, transparent 50%),
+        radial-gradient(circle at 100% 100%, rgba(37, 99, 235, 0.05) 0%, transparent 50%);
+    }
+
+    h1, h2, h3, h4 { font-family: 'Outfit', sans-serif; }
+
+    .app-container {
+      display: flex;
+      height: 100vh;
+      width: 100vw;
+    }
+
+    /* --- Sidebar --- */
+    .sidebar {
+      width: 320px;
+      background: var(--sidebar-bg);
+      backdrop-filter: blur(20px);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      padding: 24px;
+      gap: 32px;
+      z-index: 10;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin-bottom: 8px;
+    }
+
+    .logo i { color: var(--accent); }
+
+    .section-title {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--text-secondary);
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .folder-controls {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .select-custom {
+      width: 100%;
+      padding: 12px;
+      background: var(--input-bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      color: var(--text-primary);
+      appearance: none;
+      cursor: pointer;
+    }
+
+    .input-group {
+      display: flex;
+      gap: 8px;
+    }
+
+    .input-custom {
+      background: var(--input-bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 10px 14px;
+      color: var(--text-primary);
+      width: 100%;
+      font-size: 0.9rem;
+    }
+
+    .input-custom:focus {
+      outline: none;
+      border-color: var(--accent);
+      background: rgba(0, 0, 0, 0.3);
+    }
+
+    .btn-icon {
+      background: var(--accent);
+      border: none;
+      border-radius: 10px;
+      width: 40px;
+      height: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      cursor: pointer;
+    }
+
+    .btn-icon:hover { background: var(--accent-hover); transform: translateY(-1px); }
+
+    .file-list-container {
+      flex: 1;
+      overflow-y: auto;
+      margin-top: 8px;
+    }
+
+    .file-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 12px;
+      background: rgba(255, 255, 255, 0.03);
+      border-radius: 8px;
+      margin-bottom: 8px;
+      border: 1px solid transparent;
+    }
+
+    .file-item:hover {
+      background: rgba(255, 255, 255, 0.05);
+      border-color: var(--glass-border);
+    }
+
+    .file-name {
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 180px;
+    }
+
+    .btn-delete {
+      color: #ef4444;
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      padding: 4px;
+      opacity: 0.6;
+    }
+
+    .btn-delete:hover { opacity: 1; transform: scale(1.1); }
+
+    /* --- Main Chat --- */
+    .chat-area {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+    }
+
+    .header {
+      padding: 20px 40px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: var(--sidebar-bg);
+      backdrop-filter: blur(10px);
+    }
+
+    .user-profile {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .avatar {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: linear-gradient(45deg, var(--accent), #8b5cf6);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 600;
+    }
+
+    .messages {
+      flex: 1;
+      overflow-y: auto;
+      padding: 40px;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+      scroll-behavior: smooth;
+    }
+
+    .msg {
+      max-width: 75%;
+      padding: 16px 20px;
+      border-radius: 18px;
+      font-size: 0.95rem;
+      line-height: 1.6;
+      position: relative;
+      animation: messageSlide 0.3s ease-out;
+    }
+
+    @keyframes messageSlide {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .msg.user {
+      align-self: flex-end;
+      background: var(--msg-user);
+      color: white;
+      border-bottom-right-radius: 4px;
+      box-shadow: 0 4px 15px rgba(37, 99, 235, 0.2);
+    }
+
+    .msg.bot {
+      align-self: flex-start;
+      background: var(--msg-bot);
+      border: 1px solid var(--border);
+      border-bottom-left-radius: 4px;
+      color: var(--text-primary);
+    }
+
+    /* --- Thinking Process --- */
+    .thought-container {
+      margin-bottom: 12px;
+      background: var(--thought-bg);
+      border-radius: 12px;
+      border: 1px solid var(--glass-border);
+    }
+
+    .thought-header {
+      padding: 10px 14px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--text-secondary);
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .thought-content {
+      padding: 0 14px 14px 14px;
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+      line-height: 1.5;
+      font-style: italic;
+      border-top: 1px solid var(--glass-border);
+      margin-top: 8px;
+      padding-top: 12px;
+    }
+
+    /* --- Input Bar --- */
+    .input-container {
+      padding: 32px 40px;
+      background: linear-gradient(to top, var(--bg), transparent);
+    }
+
+    .input-wrapper {
+      max-width: 900px;
+      margin: 0 auto;
+      display: flex;
+      gap: 12px;
+      background: var(--card-bg);
+      padding: 8px;
+      border-radius: 16px;
+      border: 1px solid var(--border);
+      box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+    }
+
+    #input {
+      flex: 1;
+      padding: 12px 20px;
+      background: transparent;
+      border: none;
+      color: var(--text-primary);
+      font-size: 1rem;
+    }
+
+    #input:focus { outline: none; }
+
+    .btn-send {
+      background: var(--accent);
+      color: white;
+      border: none;
+      border-radius: 12px;
+      padding: 0 24px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .btn-send:hover { background: var(--accent-hover); }
+
+    /* --- Auth Overlay --- */
+    #auth-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(3, 7, 18, 0.95);
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      backdrop-filter: blur(10px);
+    }
+
+    .auth-card {
+      background: var(--sidebar-bg);
+      width: 400px;
+      padding: 40px;
+      border-radius: 24px;
+      border: 1px solid var(--border);
+      text-align: center;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+    }
+
+    .google-login {
+      margin-top: 24px;
+      width: 100%;
+      background: white;
+      color: #1f2937;
+      padding: 14px;
+      border-radius: 12px;
+      border: none;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      cursor: pointer;
+    }
+
+    /* Animations */
+    .pulse {
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0% { opacity: 1; }
+      50% { opacity: 0.5; }
+      100% { opacity: 1; }
+    }
+
+    .theme-toggle {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--text-secondary);
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-right: 12px;
+    }
+    
+    .theme-toggle:hover {
+      background: var(--input-bg);
+      color: var(--text-primary);
+    }
+
+    .hidden { display: none !important; }
   </style>
 </head>
 <body>
+
+  <!-- Auth Overlay -->
   <div id="auth-overlay">
-    <div class="card" style="padding: 30px; width: 320px; height: auto;">
-      <h2 style="margin-top:0; text-align: center;">Login</h2>
-      <input id="username" placeholder="Username" style="width: 100%; box-sizing: border-box; margin-bottom: 15px;" />
-      <input id="password" type="password" placeholder="Password" style="width: 100%; box-sizing: border-box; margin-bottom: 20px;" />
-      <button id="login-btn" style="width: 100%; background: #2563eb; border: none;">Login</button>
-      <button class="google-btn" onclick="window.location.href='/auth/google'">
-        🔐 Login with Google
+    <div class="auth-card">
+      <div class="logo" style="justify-content: center; margin-bottom: 24px; font-size: 1.75rem;">
+        <i data-lucide="zap"></i> Vault AI
+      </div>
+      <h2 style="margin: 0 0 8px 0;">Welcome back</h2>
+      <p style="color: var(--text-secondary); margin-bottom: 32px;">Please enter your details to sign in</p>
+      
+      <div style="display: flex; flex-direction: column; gap: 16px; text-align: left;">
+        <label style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: -10px;">Username</label>
+        <input id="username" class="input-custom" placeholder="admin" />
+        
+        <label style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: -10px;">Password</label>
+        <input id="password" type="password" class="input-custom" placeholder="••••••••" />
+      </div>
+
+      <button id="login-btn" style="width: 100%; margin-top: 24px; padding: 14px; background: var(--accent); border-radius: 12px; border: none; color: white; font-weight: 600; cursor: pointer;">
+        Sign In
+      </button>
+
+      <div style="margin-top: 20px; color: var(--text-secondary); font-size: 0.85rem;">or</div>
+
+      <button class="google-login" onclick="window.location.href='/auth/google'">
+        <img src="https://www.gstatic.com/images/branding/product/1x/gsa_512dp.png" width="20" alt="Google">
+        Continue with Google
       </button>
     </div>
   </div>
 
-  <div class="wrap">
-    <div style="position: absolute; top: 10px; right: 20px; color: #e8eefc; font-size: 14px; z-index: 50;">
-      <span id="user-info" style="display: none;">
-        Welcome, <strong id="user-name"></strong> (<span id="user-email"></span>)
-        <button id="logout-btn" style="margin-left: 15px; padding: 5px 10px; background: #ef4444; border: none; border-radius: 6px; cursor: pointer;">Logout</button>
-      </span>
-    </div>
-
-    <div class="sidebar">
+  <div class="app-container">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="logo"><i data-lucide="zap"></i> Vault AI</div>
+      
       <div>
-        <h4>📂 Folders</h4>
-        <select id="folder-list" style="width: 100%; margin-bottom: 10px;"></select>
-        <div style="display: flex; gap: 5px;">
-            <input id="new-folder-name" placeholder="New Folder..." style="flex: 1;"/>
-            <button onclick="createFolder()">+</button>
+        <div class="section-title"><i data-lucide="folder" size="14"></i> Folders</div>
+        <div class="folder-controls">
+          <select id="folder-list" class="select-custom"></select>
+          <div class="input-group">
+            <input id="new-folder-name" class="input-custom" placeholder="New folder name..." />
+            <button class="btn-icon" onclick="createFolder()"><i data-lucide="plus" size="18"></i></button>
+          </div>
         </div>
       </div>
-      <hr style="width: 100%; border: 0; border-top: 1px solid #1f2a44;">
-      <div>
-        <h4>⬆️ Upload</h4>
-        <input type="file" id="file-picker" multiple style="width: 100%; font-size: 12px; margin-bottom: 10px;"/>
-        <button onclick="uploadFiles()" style="width: 100%;">Upload Files</button>
-      </div>
-      <hr style="width: 100%; border: 0; border-top: 1px solid #1f2a44;">
-      <div style="flex: 1; overflow-y: auto;">
-        <h4>📄 Files</h4>
-        <div id="file-list" style="margin-top: 10px;"></div>
-      </div>
-    </div>
 
-    <div class="main">
-      <div class="card">
-        <div class="header" style="padding: 15px; border-bottom: 1px solid #1f2a44; font-weight: bold; background: #0f172a;">
-            LocalDocs — Agent Chat
+      <div style="display: flex; flex-direction: column; flex: 1;">
+        <div class="section-title"><i data-lucide="file-text" size="14"></i> Files</div>
+        <div class="file-list-container" id="file-list">
+          <!-- Files appended here -->
         </div>
-        <div id="msgs" class="msgs"></div>
-        <div class="row">
-          <input id="input" style="flex:1" placeholder="Type a message..." />
-          <button id="send">Send</button>
+        
+        <div style="margin-top: 24px;">
+          <input type="file" id="file-picker" multiple class="hidden" onchange="updateFileNameText()"/>
+          <button onclick="document.getElementById('file-picker').click()" class="input-custom" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer; border-style: dashed; background: rgba(255,255,255,0.02);">
+            <i data-lucide="upload-cloud" size="18"></i> <span id="file-count-text">Select files</span>
+          </button>
+          <button onclick="uploadFiles()" style="width: 100%; margin-top: 8px; padding: 12px; background: var(--btn-upload-bg); border-radius: 10px; border: none; color: var(--btn-upload-text); font-weight: 600; cursor: pointer;">
+            Upload to Vault
+          </button>
         </div>
       </div>
-    </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="chat-area">
+      <header class="header">
+        <div style="font-weight: 600; font-size: 1.1rem;" id="current-folder-display">Document Vault</div>
+        <div class="user-profile">
+          <button id="theme-btn" class="theme-toggle" onclick="toggleTheme()" title="Toggle Light/Dark Theme">
+            <i data-lucide="sun" class="sun-icon"></i>
+            <i data-lucide="moon" class="moon-icon hidden"></i>
+          </button>
+          
+          <div id="user-info-display" class="hidden" style="text-align: right;">
+            <div style="font-size: 0.9rem; font-weight: 600;" id="user-name">Guest</div>
+            <div style="font-size: 0.75rem; color: var(--text-secondary);" id="user-email">guest@example.com</div>
+          </div>
+          <div class="avatar" id="user-avatar">?</div>
+          <button id="logout-btn" class="btn-icon" style="background: transparent; color: #ef4444; width: auto; height: auto;"><i data-lucide="log-out" size="18"></i></button>
+        </div>
+      </header>
+
+      <div id="msgs" class="messages">
+        <!-- Messages appended here -->
+        <div class="msg bot">
+          <div style="font-weight: 600; margin-bottom: 8px; color: var(--accent);">Vault AI 3.0</div>
+          Welcome! Upload your PDFs, receipts, or documents and ask me anything. I can read images and even complex tables using my advanced vision and logic.
+        </div>
+      </div>
+
+      <div class="input-container">
+        <div class="input-wrapper">
+          <input id="input" placeholder="Ask about your documents..." autocomplete="off">
+          <button id="send" class="btn-send">
+            Send <i data-lucide="send" size="16"></i>
+          </button>
+        </div>
+      </div>
+    </main>
   </div>
 
   <script>
@@ -104,7 +567,34 @@
     let USER_NAME = "";
     let USER_EMAIL = "";
 
-    // Check if user is already logged in (from localStorage)
+    // --- Theme System ---
+    function initTheme() {
+      const savedTheme = localStorage.getItem('theme') || 'dark';
+      if (savedTheme === 'light') {
+        document.body.classList.add('light-mode');
+        document.querySelector('.sun-icon').classList.add('hidden');
+        document.querySelector('.moon-icon').classList.remove('hidden');
+      }
+    }
+
+    function toggleTheme() {
+      const isLight = document.body.classList.toggle('light-mode');
+      localStorage.setItem('theme', isLight ? 'light' : 'dark');
+      
+      const sun = document.querySelector('.sun-icon');
+      const moon = document.querySelector('.moon-icon');
+      
+      if (isLight) {
+        sun.classList.add('hidden');
+        moon.classList.remove('hidden');
+      } else {
+        sun.classList.remove('hidden');
+        moon.classList.add('hidden');
+      }
+    }
+
+    function initLucide() { lucide.createIcons(); }
+
     function checkExistingLogin() {
       const savedToken = localStorage.getItem('token');
       const savedName = localStorage.getItem('userName');
@@ -121,38 +611,17 @@
     }
 
     function showAuthSuccess() {
-      // Hide login overlay
       document.getElementById("auth-overlay").classList.add("hidden");
-      
-      // Show user info at top right
-      document.getElementById("user-info").style.display = "inline";
+      document.getElementById("user-info-display").classList.remove("hidden");
       document.getElementById("user-name").innerText = USER_NAME;
       document.getElementById("user-email").innerText = USER_EMAIL;
-      
-      // Load user's folders
+      document.getElementById("user-avatar").innerText = USER_NAME[0].toUpperCase();
       loadFolders();
     }
 
     function logout() {
-      // Clear localStorage
-      localStorage.removeItem('token');
-      localStorage.removeItem('userName');
-      localStorage.removeItem('userEmail');
-      localStorage.removeItem('loginMethod');
-      
-      // Reset variables
-      TOKEN = "";
-      USER_NAME = "";
-      USER_EMAIL = "";
-      
-      // Show login overlay
-      document.getElementById("auth-overlay").classList.remove("hidden");
-      document.getElementById("user-info").style.display = "none";
-      
-      // Clear chat and inputs
-      document.getElementById("msgs").innerHTML = "";
-      document.getElementById("username").value = "";
-      document.getElementById("password").value = "";
+      localStorage.clear();
+      location.reload();
     }
 
     async function login() {
@@ -173,20 +642,14 @@
           TOKEN = data.access_token;
           USER_NAME = u;
           USER_EMAIL = u;
-          
-          // Save to localStorage
           localStorage.setItem('token', TOKEN);
           localStorage.setItem('userName', USER_NAME);
           localStorage.setItem('userEmail', USER_EMAIL);
-          localStorage.setItem('loginMethod', 'basic');
-          
           showAuthSuccess();
         } else {
-          alert("Login Failed: Invalid username or password");
+          alert("Invalid credentials.");
         }
-      } catch (e) {
-        alert("Connection error: " + e.message);
-      }
+      } catch (e) { alert("Error: " + e.message); }
     }
 
     async function loadFolders() {
@@ -195,7 +658,7 @@
         const folders = await r.json();
         const sel = document.getElementById("folder-list");
         sel.innerHTML = folders.map(f => `<option value="${f}">${f}</option>`).join("");
-        loadFiles();
+        if (folders.length > 0) loadFiles();
       }
     }
 
@@ -213,27 +676,34 @@
     async function loadFiles() {
       const folder = document.getElementById("folder-list").value;
       if (!folder) return;
+      document.getElementById("current-folder-display").innerText = "Vault / " + folder;
       const r = await fetch(`${API_BASE}/files/${folder}`, { headers: { "Authorization": `Bearer ${TOKEN}` } });
       if (r.ok) {
         const files = await r.json();
         const container = document.getElementById("file-list");
         container.innerHTML = files.map(f => `
           <div class="file-item">
-            <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 180px;">${f}</span>
-            <button class="btn-del" onclick="deleteFile('${f}')">Delete</button>
+            <span class="file-name">${f}</span>
+            <button class="btn-delete" onclick="deleteFile('${f}')" title="Delete"><i data-lucide="trash-2" size="14"></i></button>
           </div>
         `).join("");
+        initLucide();
       }
+    }
+
+    function updateFileNameText() {
+        const files = document.getElementById('file-picker').files;
+        document.getElementById('file-count-text').innerText = files.length > 0 ? `${files.length} files selected` : `Select files`;
     }
 
     async function deleteFile(fileName) {
       const folder = document.getElementById("folder-list").value;
       if (!confirm("Delete " + fileName + "?")) return;
-      const r = await fetch(`${API_BASE}/files/${folder}/${fileName}`, {
+      await fetch(`${API_BASE}/files/${folder}/${fileName}`, {
         method: "DELETE",
         headers: { "Authorization": `Bearer ${TOKEN}` }
       });
-      if (r.ok) loadFiles();
+      loadFiles();
     }
 
     async function uploadFiles() {
@@ -250,7 +720,8 @@
           body: fd
       });
       if(r.ok) {
-        alert("Uploaded");
+        document.getElementById('file-picker').value = "";
+        updateFileNameText();
         loadFiles();
       }
     }
@@ -271,15 +742,20 @@
       if (thoughtMatch) {
         const thoughtContent = thoughtMatch[1].trim();
         const finalAnswer = rawText.replace(/<thinking>[\s\S]*?<\/thinking>/, "").trim();
-        return `
-          <details style="margin-bottom: 10px; border: 1px solid #334155; border-radius: 8px; padding: 8px; background: #1e293b;">
-            <summary style="cursor: pointer; color: #94a3b8; font-size: 0.9em; font-weight: 600;">👁️ Thought Process</summary>
-            <div style="margin-top: 8px; font-size: 0.9em; color: #cbd5e1; white-space: pre-wrap;">${thoughtContent}</div>
-          </details>
-          <div>${finalAnswer}</div>
-        `;
+        
+        let formattedThinking = `
+          <div class="thought-container">
+            <div class="thought-header" onclick="this.nextElementSibling.classList.toggle('hidden')">
+              <i data-lucide="brain"></i> Thought Process <i data-lucide="chevron-down" size="14" style="margin-left:auto"></i>
+            </div>
+            <div class="thought-content hidden">
+              ${thoughtContent.replace(/\n/g, '<br>')}
+            </div>
+          </div>`;
+        
+        return `${formattedThinking}<div>${finalAnswer.replace(/\n/g, '<br>')}</div>`;
       }
-      return rawText;
+      return rawText.replace(/\n/g, '<br>');
     }
 
     async function send() {
@@ -289,12 +765,11 @@
       if (!text) return;
       inputEl.value = "";
       addMsg(text, "user");
-      const loadingDiv = addMsg("Thinking...", "bot");
+      
+      const loadingDiv = addMsg('<span class="pulse">Generating response...</span>', "bot", true);
+      
       try {
-        const payload = { 
-            message: text,
-            docs_dir: folder ? `user_vaults/${TOKEN}/${folder}` : null 
-        };
+        const payload = { message: text, docs_dir: folder ? `user_vaults/${TOKEN}/${folder}` : null };
         const r = await fetch(`${API_BASE}/chat`, {
           method: "POST",
           headers: { "Content-Type": "application/json", "Authorization": `Bearer ${TOKEN}` },
@@ -302,29 +777,30 @@
         });
         const data = await r.json();
         loadingDiv.remove();
-        if (data.answer) addMsg(formatResponse(data.answer), "bot", true);
+        if (data.answer) {
+            addMsg(formatResponse(data.answer), "bot", true);
+            initLucide();
+        }
       } catch (e) {
-        loadingDiv.innerText = "Error: " + e.message;
+        loadingDiv.innerHTML = `<span style="color:#ef4444">Error: ${e.message}</span>`;
       }
     }
 
+    // Event Listeners
     document.getElementById("login-btn").onclick = login;
     document.getElementById("send").onclick = send;
     document.getElementById("input").onkeydown = (e) => { if(e.key === "Enter") send(); };
     document.getElementById("folder-list").onchange = loadFiles;
     document.getElementById("logout-btn").onclick = logout;
     
-    // Check if user is already logged in when page loads
     window.addEventListener('DOMContentLoaded', () => {
+      initTheme();
+      initLucide();
       if (!checkExistingLogin()) {
         document.getElementById("auth-overlay").classList.remove("hidden");
       }
     });
-    
-    // Also check on page load
-    if (!checkExistingLogin()) {
-      document.getElementById("auth-overlay").classList.remove("hidden");
-    }
+
   </script>
 </body>
 </html>
