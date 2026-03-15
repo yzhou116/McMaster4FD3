@@ -397,37 +397,30 @@ def main_agent_router(user_query: str) -> str:
 
 def ingest_docs_impl(user_target_dir: Optional[str] = None, force: bool = False) -> Dict[str, Any]:
     """
-    Ingests files from BOTH the global 'my_docs' AND the specific 'user_target_dir'.
+    Ingests files from the global 'my_docs' AND the user_target_dir (local cache).
     """
     global ENABLE_OCR
 
-    # 1. Always include the Global Defaults
     dirs_to_scan = [DEFAULT_DOCS_DIR]
-    
-    # 2. If a user folder is provided, add it to the scan list
+
     if user_target_dir:
         abs_user_dir = user_target_dir if os.path.isabs(user_target_dir) else os.path.join(BASE_DIR, user_target_dir)
-        if os.path.exists(abs_user_dir) and abs_user_dir != DEFAULT_DOCS_DIR:
+        if os.path.isdir(abs_user_dir) and abs_user_dir != DEFAULT_DOCS_DIR:
             dirs_to_scan.append(abs_user_dir)
 
-    # --- CACHE CHECK ---
-    # We check if the set of directories we are about to scan is exactly what we have in memory
-    # We sort them to ensure order doesn't matter for the check
     current_set = sorted(STATE.scanned_dirs)
     target_set = sorted(dirs_to_scan)
-    
+
     if not force and STATE.is_ready and current_set == target_set:
         return {"ok": True, "cached": True, "count": len(STATE.files)}
-    # -------------------
 
     if ENABLE_OCR:
         try:
             assert_tesseract_ready()
         except Exception:
-            print("[WARNING] Tesseract not found — OCR disabled, text extraction will still work.")
+            print("[WARNING] Tesseract not found — OCR disabled.")
             ENABLE_OCR = False
 
-    # Scan ALL directories
     files = search_local_files(dirs_to_scan)
     index = build_index(files) if files else {"metas": []}
 

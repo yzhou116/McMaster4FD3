@@ -108,7 +108,10 @@ def clear_chat_history():
     get_db().table("chat_sessions").delete().neq("id", "").execute()
 
 
-# ── File Metadata ─────────────────────────────────────────────
+# ── File Metadata (DB) ───────────────────────────────────────
+
+STORAGE_BUCKET = "shared-vault"
+
 
 def save_file_record(user: str, folder: str, filename: str, size_bytes: int):
     """Record an uploaded file in the database."""
@@ -121,13 +124,30 @@ def save_file_record(user: str, folder: str, filename: str, size_bytes: int):
     }).execute()
 
 
-def get_file_records(user: str, folder: str):
-    """List file records for a user+folder."""
+def get_folders() -> list:
+    """Return distinct folder names from uploaded_files."""
     resp = (
         get_db()
         .table("uploaded_files")
-        .select("filename, size_bytes, created_at")
-        .eq("user_id", user)
+        .select("folder")
+        .execute()
+    )
+    seen = set()
+    folders = []
+    for row in resp.data:
+        f = row["folder"]
+        if f not in seen:
+            seen.add(f)
+            folders.append(f)
+    return sorted(folders)
+
+
+def get_file_records(folder: str) -> list:
+    """List file records for a folder."""
+    resp = (
+        get_db()
+        .table("uploaded_files")
+        .select("filename, size_bytes, user_id, created_at")
         .eq("folder", folder)
         .order("created_at", desc=True)
         .execute()
@@ -145,6 +165,50 @@ def delete_file_record(folder: str, filename: str):
         .eq("filename", filename)
         .execute()
     )
+
+
+# ── Supabase Storage ─────────────────────────────────────────
+
+def storage_upload(folder: str, filename: str, data: bytes, content_type: str = "application/octet-stream"):
+    """Upload a file to the shared-vault bucket at folder/filename."""
+    path = f"{folder}/{filename}"
+    try:
+        get_db().storage.from_(STORAGE_BUCKET).remove([path])
+    except Exception:
+        pass
+    get_db().storage.from_(STORAGE_BUCKET).upload(
+        path=path,
+        file=data,
+        file_options={"content-type": content_type, "upsert": "true"},
+    )
+
+
+def storage_delete(folder: str, filename: str):
+    """Delete a file from the shared-vault bucket."""
+    get_db().storage.from_(STORAGE_BUCKET).remove([f"{folder}/{filename}"])
+
+
+def storage_download(folder: str, filename: str) -> bytes:
+    """Download a file's raw bytes from the shared-vault bucket."""
+    return get_db().storage.from_(STORAGE_BUCKET).download(f"{folder}/{filename}")
+
+
+def storage_list_folders() -> list:
+    """List all top-level 'folders' (prefixes) in the bucket."""
+    try:
+        items = get_db().storage.from_(STORAGE_BUCKET).list()
+        return [item["name"] for item in items if item.get("id") is None]
+    except Exception:
+        return []
+
+
+def storage_list_files(folder: str) -> list:
+    """List filenames inside a folder in the bucket."""
+    try:
+        items = get_db().storage.from_(STORAGE_BUCKET).list(folder)
+        return [item["name"] for item in items if item.get("id") is not None]
+    except Exception:
+        return []
 
 
 # ── Users ─────────────────────────────────────────────────────

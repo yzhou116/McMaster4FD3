@@ -1,5 +1,5 @@
 import os
-import shutil
+import tempfile
 import httpx
 from fastapi import FastAPI, Depends, HTTPException, UploadFile, File
 from fastapi.responses import FileResponse, RedirectResponse, HTMLResponse
@@ -8,7 +8,6 @@ from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from pydantic import BaseModel
 from typing import List
 from dotenv import load_dotenv
-from authlib.integrations.httpx_client import AsyncOAuth2Client
 import secrets
 
 # Load environment variables
@@ -17,10 +16,11 @@ load_dotenv()
 # Database
 from database import (
     save_message, get_chat_history, clear_chat_history,
-    save_file_record, get_file_records, delete_file_record,
+    save_file_record, get_file_records, get_folders, delete_file_record,
     create_session, get_sessions, update_session_title,
     touch_session, delete_session,
     create_user, verify_user, user_exists, list_users, delete_user,
+    storage_upload, storage_delete, storage_download, storage_list_files,
 )
 
 # Import your server functions
@@ -28,6 +28,23 @@ from server import mcp, STATE, ingest_docs_impl, ask_impl, main_agent_router
 
 mcp_app = mcp.http_app(path="/")
 api = FastAPI(lifespan=mcp_app.lifespan)
+
+def _sync_folder_cache(folder_name: str):
+    """Download any files missing from the local cache for a given folder."""
+    cache_dir = os.path.join(STORAGE_CACHE, folder_name)
+    os.makedirs(cache_dir, exist_ok=True)
+    try:
+        remote_files = storage_list_files(folder_name)
+        for filename in remote_files:
+            if filename == ".keep":
+                continue
+            local_path = os.path.join(cache_dir, filename)
+            if not os.path.exists(local_path):
+                data = storage_download(folder_name, filename)
+                with open(local_path, "wb") as f:
+                    f.write(data)
+    except Exception as e:
+        print(f"[STORAGE SYNC] Warning: {e}")
 
 # --- Middleware (Only once) ---
 api.add_middleware(
@@ -39,9 +56,9 @@ api.add_middleware(
 )
 
 # --- Configuration ---
-# All users share a single vault; uploads/messages are tagged by user_id for audit
-SHARED_VAULT = os.path.join(os.getcwd(), "shared_vault")
-os.makedirs(SHARED_VAULT, exist_ok=True)
+# Temp cache dir: Supabase Storage files are downloaded here before ingestion
+STORAGE_CACHE = os.path.join(os.getcwd(), ".storage_cache")
+os.makedirs(STORAGE_CACHE, exist_ok=True)
 
 # Google OAuth2 Configuration
 GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID", "")
@@ -207,69 +224,71 @@ async def google_callback(code: str, state: str):
 
 @api.get("/folders")
 async def list_folders(user: str = Depends(get_current_user)):
-    if not os.path.exists(SHARED_VAULT):
-        return []
-    return [d for d in os.listdir(SHARED_VAULT) if os.path.isdir(os.path.join(SHARED_VAULT, d))]
+    """Return all folders that have at least one file in the DB."""
+    return get_folders()
 
 @api.post("/folders/{folder_name}")
 async def create_folder(folder_name: str, user: str = Depends(get_current_user)):
     safe_name = "".join([c for c in folder_name if c.isalnum() or c in (' ', '_', '-')]).strip()
     if not safe_name:
         raise HTTPException(400, "Invalid folder name")
-    folder_path = os.path.join(SHARED_VAULT, safe_name)
-    os.makedirs(folder_path, exist_ok=True)
+    # Folders are virtual (defined by file paths in Storage), but we
+    # keep a placeholder record so the folder appears immediately in the UI
+    save_file_record(user, safe_name, ".keep", 0)
     return {"status": "created"}
 
 @api.post("/upload/{folder_name}")
 async def upload_files_endpoint(folder_name: str, files: List[UploadFile] = File(...), user: str = Depends(get_current_user)):
-    folder_path = os.path.join(SHARED_VAULT, folder_name)
-    if not os.path.exists(folder_path):
+    # Verify folder exists in DB
+    if folder_name not in get_folders():
         raise HTTPException(404, "Folder not found")
 
     saved_files = []
     for file in files:
-        file_location = os.path.join(folder_path, file.filename)
         contents = await file.read()
-        with open(file_location, "wb") as file_object:
-            file_object.write(contents)
-        saved_files.append(file.filename)
-        # Record upload with user_id for audit trail
+        content_type = file.content_type or "application/octet-stream"
+        # Upload to Supabase Storage
+        storage_upload(folder_name, file.filename, contents, content_type)
+        # Record in DB
         save_file_record(user, folder_name, file.filename, len(contents))
+        saved_files.append(file.filename)
 
-    ingest_docs_impl(folder_path, force=True)
+    # Sync cache and re-ingest
+    _sync_folder_cache(folder_name)
+    cache_dir = os.path.join(STORAGE_CACHE, folder_name)
+    ingest_docs_impl(cache_dir, force=True)
     return {"status": "success", "files": saved_files}
 
 @api.get("/files/{folder_name}")
 async def list_files(folder_name: str, user: str = Depends(get_current_user)):
-    folder_path = os.path.join(SHARED_VAULT, folder_name)
-    if not os.path.exists(folder_path):
-        return []
-    return [f for f in os.listdir(folder_path) if os.path.isfile(os.path.join(folder_path, f))]
+    records = get_file_records(folder_name)
+    # Exclude the placeholder .keep entry used to materialise empty folders
+    return [r["filename"] for r in records if r["filename"] != ".keep"]
 
 @api.delete("/files/{folder_name}/{file_name}")
 async def delete_file(folder_name: str, file_name: str, user: str = Depends(get_current_user)):
-    folder_path = os.path.join(SHARED_VAULT, folder_name)
-    file_path = os.path.join(folder_path, file_name)
-
-    if not os.path.exists(file_path):
-        raise HTTPException(status_code=404, detail="File not found")
-
     try:
-        os.remove(file_path)
-        ingest_docs_impl(folder_path, force=True)
-        delete_file_record(folder_name, file_name)
-        return {"status": "deleted"}
+        storage_delete(folder_name, file_name)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+    delete_file_record(folder_name, file_name)
+    # Update cache and re-ingest
+    cache_path = os.path.join(STORAGE_CACHE, folder_name, file_name)
+    if os.path.exists(cache_path):
+        os.remove(cache_path)
+    cache_dir = os.path.join(STORAGE_CACHE, folder_name)
+    ingest_docs_impl(cache_dir, force=True)
+    return {"status": "deleted"}
 
 @api.post("/chat")
 def chat(req: ChatRequest, user: str = Depends(get_current_user)):
-    # 1. Resolve target dir safely within shared vault — never trust full client path
+    # 1. Resolve folder from docs_dir, then sync that folder's cache from Storage
     if req.docs_dir:
         folder_name = os.path.basename(req.docs_dir.rstrip("/\\"))
-        target_dir = os.path.join(SHARED_VAULT, folder_name)
+        _sync_folder_cache(folder_name)
+        target_dir = os.path.join(STORAGE_CACHE, folder_name)
     else:
-        target_dir = SHARED_VAULT
+        target_dir = STORAGE_CACHE
 
     # 2. Ingest
     result = ingest_docs_impl(target_dir, force=False)
