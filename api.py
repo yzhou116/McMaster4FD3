@@ -20,6 +20,7 @@ from database import (
     save_file_record, get_file_records, delete_file_record,
     create_session, get_sessions, update_session_title,
     touch_session, delete_session,
+    create_user, verify_user, user_exists, list_users, delete_user,
 )
 
 # Import your server functions
@@ -38,8 +39,9 @@ api.add_middleware(
 )
 
 # --- Configuration ---
-UPLOAD_ROOT = os.path.join(os.getcwd(), "user_vaults")
-os.makedirs(UPLOAD_ROOT, exist_ok=True)
+# All users share a single vault; uploads/messages are tagged by user_id for audit
+SHARED_VAULT = os.path.join(os.getcwd(), "shared_vault")
+os.makedirs(SHARED_VAULT, exist_ok=True)
 
 # Google OAuth2 Configuration
 GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID", "")
@@ -48,12 +50,6 @@ GOOGLE_REDIRECT_URI = os.getenv("GOOGLE_REDIRECT_URI", "http://localhost:8000/au
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
 
-# Simple User DB (In production, use a real DB)
-USERS_DB = {
-    "admin": "password123",
-    "user1": "mypassword",
-}
-
 class ChatRequest(BaseModel):    
     message: str
     session_id: str | None = None
@@ -61,13 +57,15 @@ class ChatRequest(BaseModel):
 
 # --- Auth Helpers ---
 def get_current_user(token: str = Depends(oauth2_scheme)):
-    # Check if it's an admin user or a Google email (has @ sign)
-    is_admin = token in USERS_DB
-    is_google_user = "@" in token  # Google OAuth2 tokens are email addresses
-    
-    if not (is_admin or is_google_user):
-        raise HTTPException(status_code=401, detail="Invalid token")
+    """All tokens — username or Google email — must be in the users table."""
+    if not user_exists(token):
+        raise HTTPException(status_code=401, detail="Access denied. Contact your administrator.")
     return token
+
+def require_admin(current_user: str = Depends(get_current_user)):
+    if current_user != "admin":
+        raise HTTPException(status_code=403, detail="Admin access required")
+    return current_user
 
 # --- Endpoints ---
 
@@ -78,15 +76,39 @@ async def serve_index():
 
 @api.post("/login")
 async def login(form_data: OAuth2PasswordRequestForm = Depends()):
-    user_pw = USERS_DB.get(form_data.username)
-    if not user_pw or form_data.password != user_pw:
+    if not verify_user(form_data.username, form_data.password):
         raise HTTPException(status_code=400, detail="Incorrect username or password")
-    
-    # Ensure user has a vault directory
-    user_path = os.path.join(UPLOAD_ROOT, form_data.username)
-    os.makedirs(user_path, exist_ok=True)
-    
     return {"access_token": form_data.username, "token_type": "bearer"}
+
+
+# ── User Management Endpoints (authenticated users only) ──────
+
+class UserCreate(BaseModel):
+    username: str
+    password: str | None = None  # None = Google OAuth user (no password needed)
+
+@api.get("/users")
+def get_users(current_user: str = Depends(require_admin)):
+    """List all registered local users. Admin only."""
+    return list_users()
+
+@api.post("/users", status_code=201)
+def add_user(body: UserCreate, current_user: str = Depends(require_admin)):
+    """Add a new user. Admin only. Omit password for Google OAuth users."""
+    if user_exists(body.username):
+        raise HTTPException(status_code=409, detail="Username already exists")
+    create_user(body.username, body.password)
+    return {"status": "created", "username": body.username}
+
+@api.delete("/users/{username}")
+def remove_user(username: str, current_user: str = Depends(require_admin)):
+    """Remove a local user. Admin only."""
+    if username == "admin":
+        raise HTTPException(status_code=400, detail="Cannot remove the admin account")
+    if not user_exists(username):
+        raise HTTPException(status_code=404, detail="User not found")
+    delete_user(username)
+    return {"status": "deleted", "username": username}
 
 @api.get("/auth/google")
 async def google_login():
@@ -146,11 +168,20 @@ async def google_callback(code: str, state: str):
         user_info = user_info_response.json()
         email = user_info.get("email")
         name = user_info.get("name", "User")
-        
-        # Create/Update user vault
-        user_path = os.path.join(UPLOAD_ROOT, email)
-        os.makedirs(user_path, exist_ok=True)
-        
+
+        # Block any Google account not explicitly approved by admin
+        if not user_exists(email):
+            return HTMLResponse("""
+            <!DOCTYPE html><html><head><title>Access Denied</title></head>
+            <body style="font-family:sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;background:#06080f;color:#eef0f6;">
+              <div style="text-align:center;">
+                <h2 style="color:#ef4444;">Access Denied</h2>
+                <p>Your Google account is not authorised. Contact your administrator.</p>
+                <a href="/" style="color:#6366f1;">Go back</a>
+              </div>
+            </body></html>
+            """, status_code=403)
+
         # Return HTML page that sets localStorage and redirects
         html_response = f"""
         <!DOCTYPE html>
@@ -176,76 +207,69 @@ async def google_callback(code: str, state: str):
 
 @api.get("/folders")
 async def list_folders(user: str = Depends(get_current_user)):
-    user_path = os.path.join(UPLOAD_ROOT, user)
-    if not os.path.exists(user_path): 
+    if not os.path.exists(SHARED_VAULT):
         return []
-    # Return list of directories
-    return [d for d in os.listdir(user_path) if os.path.isdir(os.path.join(user_path, d))]
+    return [d for d in os.listdir(SHARED_VAULT) if os.path.isdir(os.path.join(SHARED_VAULT, d))]
 
 @api.post("/folders/{folder_name}")
 async def create_folder(folder_name: str, user: str = Depends(get_current_user)):
-    # Basic sanitization
     safe_name = "".join([c for c in folder_name if c.isalnum() or c in (' ', '_', '-')]).strip()
     if not safe_name:
         raise HTTPException(400, "Invalid folder name")
-        
-    folder_path = os.path.join(UPLOAD_ROOT, user, safe_name)
+    folder_path = os.path.join(SHARED_VAULT, safe_name)
     os.makedirs(folder_path, exist_ok=True)
-    return {"status": "created", "path": folder_path}
+    return {"status": "created"}
 
 @api.post("/upload/{folder_name}")
 async def upload_files_endpoint(folder_name: str, files: List[UploadFile] = File(...), user: str = Depends(get_current_user)):
-    user_path = os.path.join(UPLOAD_ROOT, user, folder_name)
-    if not os.path.exists(user_path):
+    folder_path = os.path.join(SHARED_VAULT, folder_name)
+    if not os.path.exists(folder_path):
         raise HTTPException(404, "Folder not found")
 
     saved_files = []
     for file in files:
-        file_location = os.path.join(user_path, file.filename)
+        file_location = os.path.join(folder_path, file.filename)
         contents = await file.read()
         with open(file_location, "wb") as file_object:
             file_object.write(contents)
         saved_files.append(file.filename)
-        # Track in database
+        # Record upload with user_id for audit trail
         save_file_record(user, folder_name, file.filename, len(contents))
-    
-    # Force re-ingest so the new file is immediately available in chat
-    ingest_docs_impl(user_path, force=True)
-        
+
+    ingest_docs_impl(folder_path, force=True)
     return {"status": "success", "files": saved_files}
 
 @api.get("/files/{folder_name}")
 async def list_files(folder_name: str, user: str = Depends(get_current_user)):
-    user_path = os.path.join(UPLOAD_ROOT, user, folder_name)
-    if not os.path.exists(user_path):
+    folder_path = os.path.join(SHARED_VAULT, folder_name)
+    if not os.path.exists(folder_path):
         return []
-    return [f for f in os.listdir(user_path) if os.path.isfile(os.path.join(user_path, f))]
+    return [f for f in os.listdir(folder_path) if os.path.isfile(os.path.join(folder_path, f))]
 
 @api.delete("/files/{folder_name}/{file_name}")
 async def delete_file(folder_name: str, file_name: str, user: str = Depends(get_current_user)):
-    file_path = os.path.join(UPLOAD_ROOT, user, folder_name, file_name)
-    
+    folder_path = os.path.join(SHARED_VAULT, folder_name)
+    file_path = os.path.join(folder_path, file_name)
+
     if not os.path.exists(file_path):
         raise HTTPException(status_code=404, detail="File not found")
-    
+
     try:
         os.remove(file_path)
-        user_folder_path = os.path.join(UPLOAD_ROOT, user, folder_name)
-        ingest_docs_impl(user_folder_path, force=True)
-        # Remove from database
-        delete_file_record(user, folder_name, file_name)
+        ingest_docs_impl(folder_path, force=True)
+        delete_file_record(folder_name, file_name)
         return {"status": "deleted"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
 @api.post("/chat")
 def chat(req: ChatRequest, user: str = Depends(get_current_user)):
-    # 1. Determine Target Directory (always use absolute path)
+    # 1. Resolve target dir safely within shared vault — never trust full client path
     if req.docs_dir:
-        # Frontend sends relative like "user_vaults/user/folder" — make absolute
-        target_dir = req.docs_dir if os.path.isabs(req.docs_dir) else os.path.join(os.getcwd(), req.docs_dir)
+        folder_name = os.path.basename(req.docs_dir.rstrip("/\\"))
+        target_dir = os.path.join(SHARED_VAULT, folder_name)
     else:
-        target_dir = os.path.join(UPLOAD_ROOT, user)
+        target_dir = SHARED_VAULT
 
     # 2. Ingest
     result = ingest_docs_impl(target_dir, force=False)
@@ -280,14 +304,14 @@ def chat(req: ChatRequest, user: str = Depends(get_current_user)):
 
 @api.get("/sessions")
 def list_sessions(user: str = Depends(get_current_user)):
-    """Return the user's chat sessions, newest-first."""
-    return get_sessions(user)
+    """Return all shared chat sessions, newest-first."""
+    return get_sessions()
 
 
 @api.delete("/sessions/{session_id}")
-def remove_session(session_id: str, user: str = Depends(get_current_user)):
-    """Delete a single chat session and its messages."""
-    delete_session(session_id, user)
+def remove_session(session_id: str, user: str = Depends(require_admin)):
+    """Delete a single chat session and its messages. Admin only."""
+    delete_session(session_id)
     return {"status": "deleted"}
 
 
@@ -296,13 +320,13 @@ def remove_session(session_id: str, user: str = Depends(get_current_user)):
 @api.get("/chat/history/{session_id}")
 def chat_history(session_id: str, user: str = Depends(get_current_user)):
     """Return messages for a specific session."""
-    return get_chat_history(user, session_id)
+    return get_chat_history(session_id)
 
 
 @api.delete("/chat/history")
-def chat_history_clear(user: str = Depends(get_current_user)):
-    """Clear the user's chat history."""
-    clear_chat_history(user)
+def chat_history_clear(user: str = Depends(require_admin)):
+    """Clear all chat history. Admin only."""
+    clear_chat_history()
     return {"status": "cleared"}
 
 

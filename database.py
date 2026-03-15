@@ -1,5 +1,6 @@
 import os
 import uuid
+import bcrypt
 from datetime import datetime, timezone
 from typing import Optional
 from dotenv import load_dotenv
@@ -39,13 +40,12 @@ def create_session(user: str, title: str = "New Chat") -> str:
     return session_id
 
 
-def get_sessions(user: str, limit: int = 30):
-    """Return the user's recent chat sessions, newest-first."""
+def get_sessions(limit: int = 50):
+    """Return all chat sessions, newest-first (shared across all users)."""
     resp = (
         get_db()
         .table("chat_sessions")
-        .select("id, title, created_at, updated_at")
-        .eq("user_id", user)
+        .select("id, title, user_id, created_at, updated_at")
         .order("updated_at", desc=True)
         .limit(limit)
         .execute()
@@ -68,10 +68,10 @@ def touch_session(session_id: str):
     }).eq("id", session_id).execute()
 
 
-def delete_session(session_id: str, user: str):
-    """Delete a session and all its messages."""
+def delete_session(session_id: str):
+    """Delete a session and all its messages (admin only)."""
     get_db().table("chat_history").delete().eq("session_id", session_id).execute()
-    get_db().table("chat_sessions").delete().eq("id", session_id).eq("user_id", user).execute()
+    get_db().table("chat_sessions").delete().eq("id", session_id).execute()
 
 
 # ── Chat History ──────────────────────────────────────────────
@@ -88,13 +88,12 @@ def save_message(user: str, role: str, content: str, session_id: str, folder: st
     }).execute()
 
 
-def get_chat_history(user: str, session_id: str, limit: int = 100):
-    """Return messages for a specific session, oldest-first."""
+def get_chat_history(session_id: str, limit: int = 100):
+    """Return all messages for a session, oldest-first."""
     resp = (
         get_db()
         .table("chat_history")
-        .select("role, content, folder, created_at")
-        .eq("user_id", user)
+        .select("role, content, user_id, folder, created_at")
         .eq("session_id", session_id)
         .order("created_at", desc=True)
         .limit(limit)
@@ -103,10 +102,10 @@ def get_chat_history(user: str, session_id: str, limit: int = 100):
     return list(reversed(resp.data))
 
 
-def clear_chat_history(user: str):
-    """Delete all chat messages and sessions for a user."""
-    get_db().table("chat_history").delete().eq("user_id", user).execute()
-    get_db().table("chat_sessions").delete().eq("user_id", user).execute()
+def clear_chat_history():
+    """Delete all chat messages and sessions (admin only)."""
+    get_db().table("chat_history").delete().neq("id", "").execute()
+    get_db().table("chat_sessions").delete().neq("id", "").execute()
 
 
 # ── File Metadata ─────────────────────────────────────────────
@@ -136,14 +135,81 @@ def get_file_records(user: str, folder: str):
     return resp.data
 
 
-def delete_file_record(user: str, folder: str, filename: str):
+def delete_file_record(folder: str, filename: str):
     """Remove a file record from the database."""
     (
         get_db()
         .table("uploaded_files")
         .delete()
-        .eq("user_id", user)
         .eq("folder", folder)
         .eq("filename", filename)
         .execute()
     )
+
+
+# ── Users ─────────────────────────────────────────────────────
+
+def create_user(username: str, password: str | None = None):
+    """Insert a new user. Pass a password for local auth; omit it for Google OAuth users."""
+    if password:
+        hashed = bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
+    else:
+        hashed = "GOOGLE_OAUTH"  # sentinel — this user logs in via Google only
+    get_db().table("users").insert({
+        "username": username,
+        "password_hash": hashed,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    }).execute()
+
+
+def verify_user(username: str, password: str) -> bool:
+    """Return True if username exists and password matches."""
+    resp = (
+        get_db()
+        .table("users")
+        .select("password_hash")
+        .eq("username", username)
+        .limit(1)
+        .execute()
+    )
+    if not resp.data:
+        return False
+    stored_hash = resp.data[0]["password_hash"]
+    return bcrypt.checkpw(password.encode(), stored_hash.encode())
+
+
+def user_exists(username: str) -> bool:
+    """Return True if a local user with this username is registered."""
+    resp = (
+        get_db()
+        .table("users")
+        .select("username")
+        .eq("username", username)
+        .limit(1)
+        .execute()
+    )
+    return bool(resp.data)
+
+
+def list_users():
+    """Return all users with username, auth type, and created_at."""
+    resp = (
+        get_db()
+        .table("users")
+        .select("username, password_hash, created_at")
+        .order("created_at", desc=False)
+        .execute()
+    )
+    return [
+        {
+            "username": row["username"],
+            "auth_type": "google" if row["password_hash"] == "GOOGLE_OAUTH" else "local",
+            "created_at": row["created_at"],
+        }
+        for row in resp.data
+    ]
+
+
+def delete_user(username: str):
+    """Remove a local user."""
+    get_db().table("users").delete().eq("username", username).execute()

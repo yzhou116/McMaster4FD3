@@ -3,3 +3,4 @@
 __pycache__/
 *.pyc
 user_vaults/
+shared_vault/
