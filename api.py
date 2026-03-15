@@ -14,6 +14,14 @@ import secrets
 # Load environment variables
 load_dotenv()
 
+# Database
+from database import (
+    save_message, get_chat_history, clear_chat_history,
+    save_file_record, get_file_records, delete_file_record,
+    create_session, get_sessions, update_session_title,
+    touch_session, delete_session,
+)
+
 # Import your server functions
 from server import mcp, STATE, ingest_docs_impl, ask_impl, main_agent_router
 
@@ -48,6 +56,7 @@ USERS_DB = {
 
 class ChatRequest(BaseModel):    
     message: str
+    session_id: str | None = None
     docs_dir: str | None = None
 
 # --- Auth Helpers ---
@@ -193,9 +202,12 @@ async def upload_files_endpoint(folder_name: str, files: List[UploadFile] = File
     saved_files = []
     for file in files:
         file_location = os.path.join(user_path, file.filename)
-        with open(file_location, "wb+") as file_object:
-            shutil.copyfileobj(file.file, file_object)
+        contents = await file.read()
+        with open(file_location, "wb") as file_object:
+            file_object.write(contents)
         saved_files.append(file.filename)
+        # Track in database
+        save_file_record(user, folder_name, file.filename, len(contents))
     
     # Force re-ingest so the new file is immediately available in chat
     ingest_docs_impl(user_path, force=True)
@@ -220,30 +232,79 @@ async def delete_file(folder_name: str, file_name: str, user: str = Depends(get_
         os.remove(file_path)
         user_folder_path = os.path.join(UPLOAD_ROOT, user, folder_name)
         ingest_docs_impl(user_folder_path, force=True)
+        # Remove from database
+        delete_file_record(user, folder_name, file_name)
         return {"status": "deleted"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
 @api.post("/chat")
 def chat(req: ChatRequest, user: str = Depends(get_current_user)):
-    # 1. Determine Target Directory
-    # If the frontend sends a specific folder, use it.
-    # If not, use the user's root vault directory.
+    # 1. Determine Target Directory (always use absolute path)
     if req.docs_dir:
-        target_dir = req.docs_dir
+        # Frontend sends relative like "user_vaults/user/folder" — make absolute
+        target_dir = req.docs_dir if os.path.isabs(req.docs_dir) else os.path.join(os.getcwd(), req.docs_dir)
     else:
         target_dir = os.path.join(UPLOAD_ROOT, user)
 
     # 2. Ingest
-    # This will now combine [target_dir] + [DEFAULT_DOCS_DIR] automatically
     result = ingest_docs_impl(target_dir, force=False)
     
     if not result.get("ok", False):
         return {"answer": f"Error ingesting docs: {result.get('error')}"}
 
-    # 3. Use Router
+    # 3. Session handling
+    session_id = req.session_id
+    is_new_session = False
+    if not session_id:
+        session_id = create_session(user)
+        is_new_session = True
+
+    # 4. Save user message & get answer
+    folder = req.docs_dir or "default"
+    save_message(user, "user", req.message, session_id, folder)
+
+    # Auto-title the session from the first user message
+    if is_new_session:
+        title = req.message[:60] + ("..." if len(req.message) > 60 else "")
+        update_session_title(session_id, title)
+
     answer = main_agent_router(req.message)
-    return {"answer": answer}
+
+    save_message(user, "assistant", answer, session_id, folder)
+    touch_session(session_id)
+    return {"answer": answer, "session_id": session_id}
+
+
+# ── Session Endpoints ─────────────────────────────────────────
+
+@api.get("/sessions")
+def list_sessions(user: str = Depends(get_current_user)):
+    """Return the user's chat sessions, newest-first."""
+    return get_sessions(user)
+
+
+@api.delete("/sessions/{session_id}")
+def remove_session(session_id: str, user: str = Depends(get_current_user)):
+    """Delete a single chat session and its messages."""
+    delete_session(session_id, user)
+    return {"status": "deleted"}
+
+
+# ── Chat History Endpoints ────────────────────────────────────
+
+@api.get("/chat/history/{session_id}")
+def chat_history(session_id: str, user: str = Depends(get_current_user)):
+    """Return messages for a specific session."""
+    return get_chat_history(user, session_id)
+
+
+@api.delete("/chat/history")
+def chat_history_clear(user: str = Depends(get_current_user)):
+    """Clear the user's chat history."""
+    clear_chat_history(user)
+    return {"status": "cleared"}
+
 
 # Mount MCP (Optional)
 api.mount("/mcp", mcp_app)

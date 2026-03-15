@@ -1,0 +1,5 @@
+.env
+.env.backup
+__pycache__/
+*.pyc
+user_vaults/

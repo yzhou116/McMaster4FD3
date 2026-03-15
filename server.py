@@ -84,7 +84,34 @@ def read_txt_md(path: str) -> str:
 
 def read_docx_text(path: str) -> str:
     doc = Document(path)
-    return "\n".join([p.text.strip() for p in doc.paragraphs if p.text.strip()]).strip()
+    parts = []
+
+    # Headers & footers (address, contact info often lives here)
+    for section in doc.sections:
+        for header in (section.header, section.first_page_header):
+            if header and header.paragraphs:
+                for p in header.paragraphs:
+                    if p.text.strip():
+                        parts.append(p.text.strip())
+        for footer in (section.footer, section.first_page_footer):
+            if footer and footer.paragraphs:
+                for p in footer.paragraphs:
+                    if p.text.strip():
+                        parts.append(p.text.strip())
+
+    # Body paragraphs
+    for p in doc.paragraphs:
+        if p.text.strip():
+            parts.append(p.text.strip())
+
+    # Tables (resumes often use tables for layout)
+    for table in doc.tables:
+        for row in table.rows:
+            row_text = [cell.text.strip() for cell in row.cells if cell.text.strip()]
+            if row_text:
+                parts.append(" | ".join(row_text))
+
+    return "\n".join(parts).strip()
 
 def read_pdf_text(path: str) -> str:
     reader = PdfReader(path)
@@ -333,28 +360,36 @@ def answer_with_gemini(question: str, index: Dict[str, Any], memory: Dict[str, s
 
 def main_agent_router(user_query: str) -> str:
     """
-    Routes to Excel or Docs, with Fallback.
+    Routes to Excel, Docs, or General Chat.
     """
     router_prompt = f"""
     Classify this query into one tool:
-    1. EXCEL_TOOL (tables, numbers, lists, financial)
-    2. DOCS_TOOL (text, theories, policies, names)
+    1. EXCEL_TOOL (tables, numbers, lists, financial data, spreadsheets)
+    2. DOCS_TOOL (questions about uploaded documents, files, policies, specific names or content from docs)
+    3. GENERAL_CHAT (greetings, casual conversation, general knowledge, opinions, help, coding, math, anything NOT about specific uploaded documents)
     
     Query: "{user_query}"
-    Reply only with EXCEL_TOOL or DOCS_TOOL.
+    Reply only with EXCEL_TOOL, DOCS_TOOL, or GENERAL_CHAT.
     """
     decision = call_gemini_simple(router_prompt).upper()
     print(f"[ROUTER] Decision: {decision}")
 
+    if "GENERAL" in decision:
+        return call_gemini_simple(user_query)
+
     if "EXCEL" in decision:
         ans = query_excel_impl(user_query)
-        # Fallback check
         if any(x in ans.lower() for x in ["no information", "cannot find", "not present"]):
             print("[ROUTER] Excel failed, switching to Docs...")
             return answer_with_gemini(user_query, STATE.index, STATE.memory)
         return ans
     
-    return answer_with_gemini(user_query, STATE.index, STATE.memory)
+    # DOCS_TOOL with fallback to general chat
+    ans = answer_with_gemini(user_query, STATE.index, STATE.memory)
+    if ans.strip().lower() == "can not find it":
+        print("[ROUTER] Docs had no answer, falling back to general chat...")
+        return call_gemini_simple(user_query)
+    return ans
 
 # -----------------------------
 # Core Ingest Logic
@@ -364,6 +399,8 @@ def ingest_docs_impl(user_target_dir: Optional[str] = None, force: bool = False)
     """
     Ingests files from BOTH the global 'my_docs' AND the specific 'user_target_dir'.
     """
+    global ENABLE_OCR
+
     # 1. Always include the Global Defaults
     dirs_to_scan = [DEFAULT_DOCS_DIR]
     
@@ -386,8 +423,9 @@ def ingest_docs_impl(user_target_dir: Optional[str] = None, force: bool = False)
     if ENABLE_OCR:
         try:
             assert_tesseract_ready()
-        except Exception as e:
-            return {"ok": False, "error": str(e)}
+        except Exception:
+            print("[WARNING] Tesseract not found — OCR disabled, text extraction will still work.")
+            ENABLE_OCR = False
 
     # Scan ALL directories
     files = search_local_files(dirs_to_scan)

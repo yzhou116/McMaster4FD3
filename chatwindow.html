@@ -3,39 +3,39 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Gemini Document Vault</title>
+  <title>Vault AI</title>
   <!-- Modern Typography -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Outfit:wght@500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
   <!-- Icons -->
   <script src="https://unpkg.com/lucide@latest"></script>
   
   <style>
     :root {
       /* Dark Theme (Default) */
-      --bg-dark: #030712;
-      --sidebar-bg-dark: rgba(17, 24, 39, 0.7);
-      --card-bg-dark: rgba(31, 41, 55, 0.4);
-      --text-primary-dark: #f3f4f6;
-      --text-secondary-dark: #9ca3af;
-      --border-dark: rgba(255, 255, 255, 0.1);
-      --glass-border-dark: rgba(255, 255, 255, 0.05);
-      --msg-bot-dark: rgba(31, 41, 55, 0.8);
-      --input-bg-dark: rgba(0, 0, 0, 0.2);
-      --thought-bg-dark: rgba(0, 0, 0, 0.2);
+      --bg-dark: #06080f;
+      --sidebar-bg-dark: rgba(12, 17, 29, 0.85);
+      --card-bg-dark: rgba(22, 30, 46, 0.5);
+      --text-primary-dark: #eef0f6;
+      --text-secondary-dark: #8892a8;
+      --border-dark: rgba(255, 255, 255, 0.07);
+      --glass-border-dark: rgba(255, 255, 255, 0.04);
+      --msg-bot-dark: rgba(22, 30, 46, 0.85);
+      --input-bg-dark: rgba(0, 0, 0, 0.25);
+      --thought-bg-dark: rgba(0, 0, 0, 0.25);
 
       /* Light Theme */
-      --bg-light: #f8fafc;
-      --sidebar-bg-light: rgba(255, 255, 255, 0.8);
-      --card-bg-light: rgba(255, 255, 255, 0.6);
-      --text-primary-light: #0f172a;
-      --text-secondary-light: #64748b;
-      --border-light: rgba(0, 0, 0, 0.08);
-      --glass-border-light: rgba(0, 0, 0, 0.05);
-      --msg-bot-light: rgba(241, 245, 249, 0.9);
-      --input-bg-light: rgba(255, 255, 255, 0.8);
-      --thought-bg-light: rgba(241, 245, 249, 0.5);
+      --bg-light: #f4f6fb;
+      --sidebar-bg-light: rgba(255, 255, 255, 0.85);
+      --card-bg-light: rgba(255, 255, 255, 0.7);
+      --text-primary-light: #0c1024;
+      --text-secondary-light: #5b6478;
+      --border-light: rgba(0, 0, 0, 0.07);
+      --glass-border-light: rgba(0, 0, 0, 0.04);
+      --msg-bot-light: rgba(241, 244, 250, 0.95);
+      --input-bg-light: rgba(255, 255, 255, 0.9);
+      --thought-bg-light: rgba(241, 244, 250, 0.6);
 
       /* Active Variables (Start Dark) */
       --bg: var(--bg-dark);
@@ -52,15 +52,17 @@
       --btn-upload-text: var(--btn-upload-text-dark);
 
       /* Button Colors */
-      --btn-upload-bg-dark: rgba(255, 255, 255, 0.1);
-      --btn-upload-text-dark: #f3f4f6;
-      --btn-upload-bg-light: #d1d5db;
+      --btn-upload-bg-dark: rgba(255, 255, 255, 0.06);
+      --btn-upload-text-dark: #eef0f6;
+      --btn-upload-bg-light: rgba(0, 0, 0, 0.05);
       --btn-upload-text-light: #1f2937;
 
-      /* Shared Colors */
-      --accent: #3b82f6;
-      --accent-hover: #2563eb;
-      --msg-user: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+      /* Accent Gradient */
+      --accent: #6366f1;
+      --accent-hover: #4f46e5;
+      --accent-glow: rgba(99, 102, 241, 0.3);
+      --accent-gradient: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #a855f7 100%);
+      --msg-user: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
     }
 
     /* Light Theme Class Override */
@@ -77,105 +79,261 @@
       --thought-bg: var(--thought-bg-light);
       --btn-upload-bg: var(--btn-upload-bg-light);
       --btn-upload-text: var(--btn-upload-text-light);
-      background-image: 
-        radial-gradient(circle at 0% 0%, rgba(59, 130, 246, 0.1) 0%, transparent 50%),
-        radial-gradient(circle at 100% 100%, rgba(37, 99, 235, 0.05) 0%, transparent 50%);
     }
 
-    * { box-sizing: border-box; transition: all 0.2s ease; }
+    body.light-mode .bg-orb-1 {
+      background: radial-gradient(circle, rgba(99,102,241,0.12), transparent 70%);
+    }
+    body.light-mode .bg-orb-2 {
+      background: radial-gradient(circle, rgba(168,85,247,0.08), transparent 70%);
+    }
+    body.light-mode .bg-orb-3 {
+      background: radial-gradient(circle, rgba(59,130,246,0.06), transparent 70%);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
 
     body { 
       font-family: 'Inter', sans-serif; 
-      margin: 0; 
       background: var(--bg); 
       color: var(--text-primary);
       height: 100vh;
       overflow: hidden;
-      background-image: 
-        radial-gradient(circle at 0% 0%, rgba(59, 130, 246, 0.05) 0%, transparent 50%),
-        radial-gradient(circle at 100% 100%, rgba(37, 99, 235, 0.05) 0%, transparent 50%);
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
     }
 
     h1, h2, h3, h4 { font-family: 'Outfit', sans-serif; }
+
+    /* --- Animated Background Orbs --- */
+    .bg-orbs {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      overflow: hidden;
+      pointer-events: none;
+    }
+
+    .bg-orb-1, .bg-orb-2, .bg-orb-3 {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(80px);
+    }
+
+    .bg-orb-1 {
+      width: 600px; height: 600px;
+      top: -10%; left: -5%;
+      background: radial-gradient(circle, rgba(99,102,241,0.08), transparent 70%);
+      animation: orbFloat1 20s ease-in-out infinite;
+    }
+    .bg-orb-2 {
+      width: 500px; height: 500px;
+      bottom: -15%; right: -5%;
+      background: radial-gradient(circle, rgba(168,85,247,0.06), transparent 70%);
+      animation: orbFloat2 25s ease-in-out infinite;
+    }
+    .bg-orb-3 {
+      width: 400px; height: 400px;
+      top: 40%; left: 50%;
+      background: radial-gradient(circle, rgba(59,130,246,0.04), transparent 70%);
+      animation: orbFloat3 18s ease-in-out infinite;
+    }
+
+    @keyframes orbFloat1 {
+      0%, 100% { transform: translate(0, 0); }
+      33% { transform: translate(60px, 40px); }
+      66% { transform: translate(-30px, 60px); }
+    }
+    @keyframes orbFloat2 {
+      0%, 100% { transform: translate(0, 0); }
+      33% { transform: translate(-50px, -30px); }
+      66% { transform: translate(40px, -50px); }
+    }
+    @keyframes orbFloat3 {
+      0%, 100% { transform: translate(0, 0); }
+      50% { transform: translate(80px, -60px); }
+    }
+
+    /* --- Toast Notifications --- */
+    .toast-container {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      z-index: 500;
+      display: flex;
+      flex-direction: column-reverse;
+      gap: 10px;
+    }
+
+    .toast {
+      padding: 14px 20px;
+      border-radius: 14px;
+      background: var(--sidebar-bg);
+      backdrop-filter: blur(20px);
+      border: 1px solid var(--border);
+      color: var(--text-primary);
+      font-size: 0.87rem;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      box-shadow: 0 12px 40px rgba(0,0,0,0.3);
+      animation: toastSlideIn 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+      max-width: 360px;
+    }
+
+    .toast.toast-success { border-left: 3px solid #22c55e; }
+    .toast.toast-error { border-left: 3px solid #ef4444; }
+    .toast.toast-info { border-left: 3px solid var(--accent); }
+
+    .toast-exit {
+      animation: toastSlideOut 0.3s ease forwards;
+    }
+
+    @keyframes toastSlideIn {
+      from { opacity: 0; transform: translateX(60px) scale(0.95); }
+      to { opacity: 1; transform: translateX(0) scale(1); }
+    }
+    @keyframes toastSlideOut {
+      to { opacity: 0; transform: translateX(60px) scale(0.95); }
+    }
 
     .app-container {
       display: flex;
       height: 100vh;
       width: 100vw;
+      position: relative;
+      z-index: 1;
     }
 
     /* --- Sidebar --- */
     .sidebar {
-      width: 320px;
+      width: 300px;
+      min-width: 300px;
       background: var(--sidebar-bg);
-      backdrop-filter: blur(20px);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
       border-right: 1px solid var(--border);
       display: flex;
       flex-direction: column;
-      padding: 24px;
-      gap: 32px;
+      padding: 20px 16px;
+      gap: 20px;
       z-index: 10;
+      transition: width 0.3s cubic-bezier(0.16, 1, 0.3, 1), min-width 0.3s cubic-bezier(0.16, 1, 0.3, 1);
     }
 
     .logo {
       display: flex;
       align-items: center;
-      gap: 12px;
-      font-size: 1.25rem;
-      font-weight: 700;
+      gap: 10px;
+      font-size: 1.2rem;
+      font-weight: 800;
+      font-family: 'Outfit', sans-serif;
       color: var(--text-primary);
-      margin-bottom: 8px;
+      padding: 6px 8px;
+      letter-spacing: -0.02em;
     }
 
-    .logo i { color: var(--accent); }
-
-    .section-title {
-      font-size: 0.75rem;
-      text-transform: uppercase;
-      letter-spacing: 0.1em;
-      color: var(--text-secondary);
-      margin-bottom: 12px;
+    .logo-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      background: var(--accent-gradient);
       display: flex;
       align-items: center;
-      gap: 8px;
+      justify-content: center;
+      color: white;
+      box-shadow: 0 4px 12px var(--accent-glow);
+    }
+
+    .section-title {
+      font-size: 0.68rem;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: var(--text-secondary);
+      margin-bottom: 8px;
+      padding: 0 8px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-weight: 600;
     }
 
     .folder-controls {
       display: flex;
       flex-direction: column;
-      gap: 12px;
+      gap: 8px;
     }
 
     .select-custom {
       width: 100%;
-      padding: 12px;
+      padding: 10px 36px 10px 12px;
       background: var(--input-bg);
       border: 1px solid var(--border);
       border-radius: 10px;
       color: var(--text-primary);
       appearance: none;
+      -webkit-appearance: none;
       cursor: pointer;
+      font-size: 0.85rem;
+      font-family: 'Inter', sans-serif;
+      transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%238892a8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 10px center;
+      background-size: 16px;
+    }
+
+    .select-custom:hover {
+      border-color: rgba(255, 255, 255, 0.15);
+      background-color: rgba(255, 255, 255, 0.04);
+    }
+
+    .select-custom:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-glow);
+    }
+
+    .select-custom option {
+      background: var(--bg-dark);
+      color: var(--text-primary-dark);
+      padding: 8px;
+    }
+
+    body.light-mode .select-custom {
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%235b6478' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+    }
+
+    body.light-mode .select-custom:hover {
+      border-color: rgba(0, 0, 0, 0.15);
+      background-color: rgba(0, 0, 0, 0.03);
+    }
+
+    body.light-mode .select-custom option {
+      background: var(--bg-light);
+      color: var(--text-primary-light);
     }
 
     .input-group {
       display: flex;
-      gap: 8px;
+      gap: 6px;
     }
 
     .input-custom {
       background: var(--input-bg);
       border: 1px solid var(--border);
       border-radius: 10px;
-      padding: 10px 14px;
+      padding: 10px 12px;
       color: var(--text-primary);
       width: 100%;
-      font-size: 0.9rem;
+      font-size: 0.85rem;
+      transition: border-color 0.2s ease, box-shadow 0.2s ease;
     }
 
     .input-custom:focus {
       outline: none;
       border-color: var(--accent);
-      background: rgba(0, 0, 0, 0.3);
+      box-shadow: 0 0 0 3px var(--accent-glow);
     }
 
     .btn-icon {
@@ -189,39 +347,67 @@
       justify-content: center;
       color: white;
       cursor: pointer;
+      flex-shrink: 0;
+      transition: transform 0.15s ease, background 0.2s ease, box-shadow 0.2s ease;
     }
 
-    .btn-icon:hover { background: var(--accent-hover); transform: translateY(-1px); }
+    .btn-icon:hover { 
+      background: var(--accent-hover); 
+      transform: translateY(-1px); 
+      box-shadow: 0 4px 12px var(--accent-glow);
+    }
+    .btn-icon:active { transform: translateY(0) scale(0.95); }
 
     .file-list-container {
       flex: 1;
       overflow-y: auto;
-      margin-top: 8px;
+      margin-top: 4px;
+      scrollbar-width: thin;
+      scrollbar-color: rgba(255,255,255,0.08) transparent;
     }
+
+    .file-list-container::-webkit-scrollbar { width: 4px; }
+    .file-list-container::-webkit-scrollbar-track { background: transparent; }
+    .file-list-container::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 4px; }
 
     .file-item {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 10px 12px;
-      background: rgba(255, 255, 255, 0.03);
-      border-radius: 8px;
-      margin-bottom: 8px;
+      padding: 9px 12px;
+      background: rgba(255, 255, 255, 0.02);
+      border-radius: 9px;
+      margin-bottom: 4px;
       border: 1px solid transparent;
+      transition: background 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
     }
 
     .file-item:hover {
       background: rgba(255, 255, 255, 0.05);
       border-color: var(--glass-border);
+      transform: translateX(2px);
     }
 
     .file-name {
-      font-size: 0.85rem;
+      font-size: 0.82rem;
       color: var(--text-secondary);
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
       max-width: 180px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .file-name::before {
+      content: '';
+      width: 6px;
+      height: 6px;
+      border-radius: 2px;
+      background: var(--accent);
+      opacity: 0.5;
+      flex-shrink: 0;
     }
 
     .btn-delete {
@@ -230,10 +416,12 @@
       border: none;
       cursor: pointer;
       padding: 4px;
-      opacity: 0.6;
+      opacity: 0;
+      transition: opacity 0.15s ease, transform 0.15s ease;
     }
 
-    .btn-delete:hover { opacity: 1; transform: scale(1.1); }
+    .file-item:hover .btn-delete { opacity: 0.6; }
+    .btn-delete:hover { opacity: 1 !important; transform: scale(1.15); }
 
     /* --- Main Chat --- */
     .chat-area {
@@ -241,74 +429,228 @@
       display: flex;
       flex-direction: column;
       position: relative;
+      min-width: 0;
     }
 
     .header {
-      padding: 20px 40px;
+      padding: 16px 32px;
       border-bottom: 1px solid var(--border);
       display: flex;
       justify-content: space-between;
       align-items: center;
       background: var(--sidebar-bg);
-      backdrop-filter: blur(10px);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+    }
+
+    .header-title {
+      font-weight: 600;
+      font-size: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--text-primary);
+    }
+
+    .header-title-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #22c55e;
+      animation: dotPulse 2s ease-in-out infinite;
+    }
+
+    @keyframes dotPulse {
+      0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.4); }
+      50% { opacity: 0.7; box-shadow: 0 0 0 4px rgba(34, 197, 94, 0); }
     }
 
     .user-profile {
       display: flex;
       align-items: center;
-      gap: 12px;
+      gap: 8px;
     }
 
-    .avatar {
-      width: 40px;
-      height: 40px;
-      border-radius: 50%;
-      background: linear-gradient(45deg, var(--accent), #8b5cf6);
+    .header-btn {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--text-secondary);
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-weight: 600;
+      transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
+    }
+
+    .header-btn:hover {
+      background: var(--input-bg);
+      color: var(--text-primary);
+      border-color: rgba(255,255,255,0.12);
+    }
+    .header-btn:active { transform: scale(0.92); }
+
+    .avatar {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      background: var(--accent-gradient);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 0.85rem;
+      color: white;
+      box-shadow: 0 2px 8px var(--accent-glow);
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    .avatar:hover {
+      transform: scale(1.05);
+      box-shadow: 0 4px 16px var(--accent-glow);
     }
 
     .messages {
       flex: 1;
       overflow-y: auto;
-      padding: 40px;
+      padding: 32px 40px;
       display: flex;
       flex-direction: column;
-      gap: 24px;
+      gap: 16px;
       scroll-behavior: smooth;
+      scrollbar-width: thin;
+      scrollbar-color: rgba(255,255,255,0.06) transparent;
     }
+
+    .messages::-webkit-scrollbar { width: 5px; }
+    .messages::-webkit-scrollbar-track { background: transparent; }
+    .messages::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.06); border-radius: 5px; }
 
     .msg {
-      max-width: 75%;
-      padding: 16px 20px;
+      max-width: 72%;
+      padding: 14px 18px;
       border-radius: 18px;
-      font-size: 0.95rem;
-      line-height: 1.6;
+      font-size: 0.92rem;
+      line-height: 1.65;
       position: relative;
-      animation: messageSlide 0.3s ease-out;
+      animation: msgPop 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+      word-wrap: break-word;
     }
 
-    @keyframes messageSlide {
-      from { opacity: 0; transform: translateY(10px); }
-      to { opacity: 1; transform: translateY(0); }
+    @keyframes msgPop {
+      from { opacity: 0; transform: translateY(12px) scale(0.97); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
     }
 
     .msg.user {
       align-self: flex-end;
       background: var(--msg-user);
       color: white;
-      border-bottom-right-radius: 4px;
-      box-shadow: 0 4px 15px rgba(37, 99, 235, 0.2);
+      border-bottom-right-radius: 6px;
+      box-shadow: 0 4px 20px rgba(99, 102, 241, 0.2);
     }
 
     .msg.bot {
       align-self: flex-start;
       background: var(--msg-bot);
       border: 1px solid var(--border);
-      border-bottom-left-radius: 4px;
+      border-bottom-left-radius: 6px;
       color: var(--text-primary);
+      backdrop-filter: blur(8px);
+    }
+
+    /* --- Typing Indicator --- */
+    .typing-indicator {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      padding: 18px 22px;
+    }
+
+    .typing-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--text-secondary);
+      animation: typingBounce 1.4s ease-in-out infinite;
+    }
+
+    .typing-dot:nth-child(2) { animation-delay: 0.15s; }
+    .typing-dot:nth-child(3) { animation-delay: 0.3s; }
+
+    @keyframes typingBounce {
+      0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
+      30% { transform: translateY(-8px); opacity: 1; }
+    }
+
+    /* --- Welcome Message --- */
+    .welcome-msg {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 60px 40px;
+      gap: 16px;
+      animation: msgPop 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .welcome-icon {
+      width: 64px;
+      height: 64px;
+      border-radius: 20px;
+      background: var(--accent-gradient);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      box-shadow: 0 8px 32px var(--accent-glow);
+      margin-bottom: 8px;
+    }
+
+    .welcome-title {
+      font-family: 'Outfit', sans-serif;
+      font-size: 1.6rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      background: var(--accent-gradient);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .welcome-sub {
+      color: var(--text-secondary);
+      font-size: 0.9rem;
+      max-width: 420px;
+      line-height: 1.6;
+    }
+
+    .welcome-chips {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      justify-content: center;
+      margin-top: 8px;
+    }
+
+    .welcome-chip {
+      padding: 8px 16px;
+      border-radius: 20px;
+      border: 1px solid var(--border);
+      background: var(--card-bg);
+      color: var(--text-secondary);
+      font-size: 0.8rem;
+      cursor: pointer;
+      transition: border-color 0.15s ease, color 0.15s ease, background 0.15s ease, transform 0.15s ease;
+    }
+
+    .welcome-chip:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+      transform: translateY(-1px);
     }
 
     /* --- Thinking Process --- */
@@ -317,6 +659,7 @@
       background: var(--thought-bg);
       border-radius: 12px;
       border: 1px solid var(--glass-border);
+      overflow: hidden;
     }
 
     .thought-header {
@@ -324,18 +667,21 @@
       display: flex;
       align-items: center;
       gap: 8px;
-      font-size: 0.8rem;
+      font-size: 0.78rem;
       font-weight: 600;
       color: var(--text-secondary);
       cursor: pointer;
       user-select: none;
+      transition: background 0.15s ease;
     }
+
+    .thought-header:hover { background: rgba(255,255,255,0.03); }
 
     .thought-content {
       padding: 0 14px 14px 14px;
-      font-size: 0.85rem;
+      font-size: 0.83rem;
       color: var(--text-secondary);
-      line-height: 1.5;
+      line-height: 1.55;
       font-style: italic;
       border-top: 1px solid var(--glass-border);
       margin-top: 8px;
@@ -344,76 +690,121 @@
 
     /* --- Input Bar --- */
     .input-container {
-      padding: 32px 40px;
-      background: linear-gradient(to top, var(--bg), transparent);
+      padding: 20px 32px 28px;
+      background: linear-gradient(to top, var(--bg) 60%, transparent);
     }
 
     .input-wrapper {
-      max-width: 900px;
+      max-width: 860px;
       margin: 0 auto;
       display: flex;
-      gap: 12px;
+      gap: 8px;
       background: var(--card-bg);
-      padding: 8px;
+      padding: 6px;
       border-radius: 16px;
       border: 1px solid var(--border);
-      box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+      box-shadow: 0 8px 32px rgba(0,0,0,0.15);
+      backdrop-filter: blur(12px);
+      transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .input-wrapper:focus-within {
+      border-color: var(--accent);
+      box-shadow: 0 8px 32px rgba(0,0,0,0.15), 0 0 0 3px var(--accent-glow);
     }
 
     #input {
       flex: 1;
-      padding: 12px 20px;
+      padding: 12px 18px;
       background: transparent;
       border: none;
       color: var(--text-primary);
-      font-size: 1rem;
+      font-size: 0.95rem;
+      font-family: 'Inter', sans-serif;
     }
 
     #input:focus { outline: none; }
 
+    #input::placeholder { color: var(--text-secondary); opacity: 0.6; }
+
     .btn-send {
-      background: var(--accent);
+      background: var(--accent-gradient);
       color: white;
       border: none;
       border-radius: 12px;
-      padding: 0 24px;
+      padding: 0 20px;
       font-weight: 600;
       cursor: pointer;
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 6px;
+      font-size: 0.88rem;
+      box-shadow: 0 2px 8px var(--accent-glow);
+      transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease;
     }
 
-    .btn-send:hover { background: var(--accent-hover); }
+    .btn-send:hover { 
+      transform: translateY(-1px); 
+      box-shadow: 0 4px 16px var(--accent-glow); 
+    }
+    .btn-send:active { transform: translateY(0) scale(0.97); }
 
     /* --- Auth Overlay --- */
     #auth-overlay {
       position: fixed;
       inset: 0;
-      background: rgba(3, 7, 18, 0.95);
+      background: rgba(6, 8, 15, 0.97);
       z-index: 100;
       display: flex;
       align-items: center;
       justify-content: center;
-      backdrop-filter: blur(10px);
+      backdrop-filter: blur(20px);
     }
 
     .auth-card {
       background: var(--sidebar-bg);
-      width: 400px;
-      padding: 40px;
-      border-radius: 24px;
+      width: 420px;
+      padding: 44px;
+      border-radius: 28px;
       border: 1px solid var(--border);
       text-align: center;
-      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+      box-shadow: 0 32px 64px rgba(0, 0, 0, 0.5);
+      animation: slideUp 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .auth-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: var(--accent-gradient);
+    }
+
+    .auth-divider {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin: 24px 0;
+      color: var(--text-secondary);
+      font-size: 0.8rem;
+    }
+
+    .auth-divider::before, .auth-divider::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--border);
     }
 
     .google-login {
-      margin-top: 24px;
       width: 100%;
       background: white;
       color: #1f2937;
-      padding: 14px;
+      padding: 13px;
       border-radius: 12px;
       border: none;
       font-weight: 600;
@@ -422,17 +813,21 @@
       justify-content: center;
       gap: 10px;
       cursor: pointer;
+      font-size: 0.9rem;
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    .google-login:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
     }
 
     /* Animations */
-    .pulse {
-      animation: pulse 2s infinite;
-    }
+    .pulse { animation: pulse 1.5s ease-in-out infinite; }
 
     @keyframes pulse {
-      0% { opacity: 1; }
-      50% { opacity: 0.5; }
-      100% { opacity: 1; }
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
     }
 
     .theme-toggle {
@@ -441,46 +836,511 @@
       color: var(--text-secondary);
       width: 36px;
       height: 36px;
-      border-radius: 50%;
+      border-radius: 10px;
       cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: center;
-      margin-right: 12px;
+      transition: background 0.15s ease, color 0.15s ease, transform 0.15s ease;
     }
     
     .theme-toggle:hover {
       background: var(--input-bg);
       color: var(--text-primary);
     }
+    .theme-toggle:active { transform: scale(0.92); }
+
+    /* --- Chat History Panel --- */
+    .chat-history-section {
+      display: flex;
+      flex-direction: column;
+      max-height: 260px;
+    }
+
+    .btn-new-chat {
+      width: 100%;
+      padding: 10px 14px;
+      background: var(--accent-gradient);
+      color: white;
+      border: none;
+      border-radius: 10px;
+      font-weight: 600;
+      font-size: 0.82rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      margin-bottom: 10px;
+      box-shadow: 0 2px 8px var(--accent-glow);
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    .btn-new-chat:hover { 
+      transform: translateY(-1px); 
+      box-shadow: 0 4px 16px var(--accent-glow); 
+    }
+    .btn-new-chat:active { transform: translateY(0) scale(0.97); }
+
+    .session-list {
+      flex: 1;
+      overflow-y: auto;
+      scrollbar-width: thin;
+      scrollbar-color: rgba(255,255,255,0.06) transparent;
+    }
+
+    .session-list::-webkit-scrollbar { width: 3px; }
+    .session-list::-webkit-scrollbar-track { background: transparent; }
+    .session-list::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.06); border-radius: 3px; }
+
+    .session-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 9px 10px;
+      border-radius: 9px;
+      margin-bottom: 2px;
+      cursor: pointer;
+      border: 1px solid transparent;
+      background: transparent;
+      width: 100%;
+      text-align: left;
+      color: var(--text-secondary);
+      font-size: 0.8rem;
+      line-height: 1.3;
+      transition: background 0.12s ease, border-color 0.12s ease, color 0.12s ease;
+    }
+
+    .session-item:hover {
+      background: rgba(255, 255, 255, 0.04);
+      border-color: var(--glass-border);
+      color: var(--text-primary);
+    }
+
+    .session-item.active {
+      background: rgba(99, 102, 241, 0.1);
+      border-color: rgba(99, 102, 241, 0.2);
+      color: var(--text-primary);
+    }
+
+    .session-item.active::before {
+      content: '';
+      width: 3px;
+      height: 16px;
+      border-radius: 3px;
+      background: var(--accent);
+      flex-shrink: 0;
+      margin-right: -2px;
+    }
+
+    .session-title {
+      flex: 1;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .session-delete {
+      color: #ef4444;
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      padding: 2px;
+      opacity: 0;
+      flex-shrink: 0;
+      transition: opacity 0.12s ease;
+    }
+
+    .session-item:hover .session-delete { opacity: 0.5; }
+    .session-delete:hover { opacity: 1 !important; }
+
+    /* --- Settings Modal --- */
+    .settings-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.6);
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      backdrop-filter: blur(8px);
+      animation: fadeIn 0.2s ease;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    .settings-modal {
+      background: var(--sidebar-bg);
+      backdrop-filter: blur(30px);
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      width: 520px;
+      max-height: 85vh;
+      overflow-y: auto;
+      box-shadow: 0 32px 80px rgba(0,0,0,0.45);
+      animation: slideUp 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    @keyframes slideUp {
+      from { opacity: 0; transform: translateY(24px) scale(0.97); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    .settings-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 24px 28px 16px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .settings-header h2 {
+      margin: 0;
+      font-size: 1.2rem;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .settings-close {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--text-secondary);
+      width: 32px;
+      height: 32px;
+      border-radius: 9px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.15s ease, color 0.15s ease, transform 0.15s ease;
+    }
+
+    .settings-close:hover {
+      background: var(--input-bg);
+      color: var(--text-primary);
+    }
+    .settings-close:active { transform: scale(0.9); }
+
+    .settings-body {
+      padding: 24px 28px;
+    }
+
+    .settings-section {
+      margin-bottom: 28px;
+    }
+
+    .settings-section:last-child {
+      margin-bottom: 0;
+    }
+
+    .settings-section-title {
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: var(--text-secondary);
+      margin-bottom: 14px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 600;
+    }
+
+    .settings-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 0;
+      border-bottom: 1px solid var(--glass-border);
+    }
+
+    .settings-row:last-child {
+      border-bottom: none;
+    }
+
+    .settings-row-label {
+      font-size: 0.88rem;
+      color: var(--text-primary);
+    }
+
+    .settings-row-desc {
+      font-size: 0.73rem;
+      color: var(--text-secondary);
+      margin-top: 2px;
+    }
+
+    .settings-input {
+      background: var(--input-bg);
+      border: 1px solid var(--border);
+      border-radius: 9px;
+      padding: 8px 12px;
+      color: var(--text-primary);
+      font-size: 0.85rem;
+      width: 210px;
+      transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .settings-input:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-glow);
+    }
+
+    .settings-select {
+      background: var(--input-bg);
+      border: 1px solid var(--border);
+      border-radius: 9px;
+      padding: 8px 32px 8px 12px;
+      color: var(--text-primary);
+      font-size: 0.85rem;
+      font-family: 'Inter', sans-serif;
+      cursor: pointer;
+      appearance: none;
+      -webkit-appearance: none;
+      transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%238892a8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 8px center;
+      background-size: 14px;
+      min-width: 110px;
+    }
+
+    .settings-select:hover {
+      border-color: rgba(255, 255, 255, 0.15);
+      background-color: rgba(255, 255, 255, 0.04);
+    }
+
+    .settings-select:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-glow);
+    }
+
+    .settings-select option {
+      background: var(--bg-dark);
+      color: var(--text-primary-dark);
+      padding: 8px;
+    }
+
+    body.light-mode .settings-select {
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%235b6478' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+    }
+
+    body.light-mode .settings-select:hover {
+      border-color: rgba(0, 0, 0, 0.15);
+      background-color: rgba(0, 0, 0, 0.03);
+    }
+
+    body.light-mode .settings-select option {
+      background: var(--bg-light);
+      color: var(--text-primary-light);
+    }
+
+    .toggle-switch {
+      position: relative;
+      width: 44px;
+      height: 24px;
+      flex-shrink: 0;
+    }
+
+    .toggle-switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
+    .toggle-slider {
+      position: absolute;
+      cursor: pointer;
+      inset: 0;
+      background: rgba(255,255,255,0.08);
+      border-radius: 24px;
+      transition: background 0.25s ease;
+    }
+
+    .toggle-slider::before {
+      content: '';
+      position: absolute;
+      height: 18px;
+      width: 18px;
+      left: 3px;
+      bottom: 3px;
+      background: white;
+      border-radius: 50%;
+      transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+    }
+
+    .toggle-switch input:checked + .toggle-slider {
+      background: var(--accent);
+    }
+
+    .toggle-switch input:checked + .toggle-slider::before {
+      transform: translateX(20px);
+    }
+
+    .settings-btn {
+      padding: 10px 20px;
+      border-radius: 10px;
+      border: none;
+      font-weight: 600;
+      font-size: 0.85rem;
+      cursor: pointer;
+      transition: transform 0.12s ease, box-shadow 0.12s ease, background 0.15s ease;
+    }
+
+    .settings-btn:active { transform: scale(0.96); }
+
+    .settings-btn-primary {
+      background: var(--accent-gradient);
+      color: white;
+      box-shadow: 0 2px 8px var(--accent-glow);
+    }
+
+    .settings-btn-primary:hover { 
+      transform: translateY(-1px);
+      box-shadow: 0 4px 16px var(--accent-glow); 
+    }
+
+    .settings-btn-danger {
+      background: rgba(239, 68, 68, 0.1);
+      color: #ef4444;
+      border: 1px solid rgba(239, 68, 68, 0.2);
+    }
+
+    .settings-btn-danger:hover {
+      background: rgba(239, 68, 68, 0.2);
+    }
+
+    .settings-footer {
+      padding: 16px 28px 24px;
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      border-top: 1px solid var(--border);
+    }
+
+    .settings-avatar-section {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 18px;
+      padding: 16px;
+      background: var(--input-bg);
+      border-radius: 14px;
+      border: 1px solid var(--glass-border);
+    }
+
+    .settings-avatar {
+      width: 52px;
+      height: 52px;
+      border-radius: 14px;
+      background: var(--accent-gradient);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 1.3rem;
+      color: white;
+      box-shadow: 0 4px 12px var(--accent-glow);
+    }
+
+    /* --- Upload Area --- */
+    .upload-zone {
+      padding: 14px;
+      border: 1.5px dashed var(--border);
+      border-radius: 12px;
+      text-align: center;
+      cursor: pointer;
+      background: rgba(255,255,255,0.015);
+      transition: border-color 0.2s ease, background 0.2s ease, transform 0.15s ease;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .upload-zone:hover {
+      border-color: var(--accent);
+      background: rgba(99, 102, 241, 0.04);
+      transform: translateY(-1px);
+    }
+
+    .upload-zone-icon {
+      color: var(--accent);
+      opacity: 0.7;
+    }
+
+    .upload-zone-text {
+      font-size: 0.8rem;
+      color: var(--text-secondary);
+    }
+
+    .btn-upload {
+      width: 100%;
+      margin-top: 8px;
+      padding: 11px;
+      background: var(--btn-upload-bg);
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      color: var(--btn-upload-text);
+      font-weight: 600;
+      font-size: 0.82rem;
+      cursor: pointer;
+      transition: background 0.15s ease, transform 0.15s ease, border-color 0.15s ease;
+    }
+
+    .btn-upload:hover {
+      border-color: var(--accent);
+      transform: translateY(-1px);
+    }
+    .btn-upload:active { transform: scale(0.97); }
 
     .hidden { display: none !important; }
+
+    /* --- Scrollbar for settings modal --- */
+    .settings-modal::-webkit-scrollbar { width: 4px; }
+    .settings-modal::-webkit-scrollbar-track { background: transparent; }
+    .settings-modal::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 4px; }
   </style>
 </head>
 <body>
 
+  <!-- Animated Background -->
+  <div class="bg-orbs">
+    <div class="bg-orb-1"></div>
+    <div class="bg-orb-2"></div>
+    <div class="bg-orb-3"></div>
+  </div>
+
+  <!-- Toast Container -->
+  <div class="toast-container" id="toast-container"></div>
+
   <!-- Auth Overlay -->
   <div id="auth-overlay">
     <div class="auth-card">
-      <div class="logo" style="justify-content: center; margin-bottom: 24px; font-size: 1.75rem;">
-        <i data-lucide="zap"></i> Vault AI
+      <div class="logo" style="justify-content: center; margin-bottom: 20px; font-size: 1.5rem;">
+        <div class="logo-icon"><i data-lucide="zap" size="20"></i></div> Vault AI
       </div>
-      <h2 style="margin: 0 0 8px 0;">Welcome back</h2>
-      <p style="color: var(--text-secondary); margin-bottom: 32px;">Please enter your details to sign in</p>
+      <h2 style="margin: 0 0 6px 0; font-size: 1.4rem;">Welcome back</h2>
+      <p style="color: var(--text-secondary); margin-bottom: 28px; font-size: 0.88rem;">Sign in to access your document vault</p>
       
-      <div style="display: flex; flex-direction: column; gap: 16px; text-align: left;">
-        <label style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: -10px;">Username</label>
+      <div style="display: flex; flex-direction: column; gap: 14px; text-align: left;">
+        <label style="font-size: 0.78rem; color: var(--text-secondary); margin-bottom: -8px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.05em;">Username</label>
         <input id="username" class="input-custom" placeholder="admin" />
         
-        <label style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: -10px;">Password</label>
+        <label style="font-size: 0.78rem; color: var(--text-secondary); margin-bottom: -8px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.05em;">Password</label>
         <input id="password" type="password" class="input-custom" placeholder="••••••••" />
       </div>
 
-      <button id="login-btn" style="width: 100%; margin-top: 24px; padding: 14px; background: var(--accent); border-radius: 12px; border: none; color: white; font-weight: 600; cursor: pointer;">
+      <button id="login-btn" class="btn-send" style="width: 100%; margin-top: 22px; padding: 14px; justify-content: center; font-size: 0.92rem; border-radius: 12px;">
         Sign In
       </button>
 
-      <div style="margin-top: 20px; color: var(--text-secondary); font-size: 0.85rem;">or</div>
+      <div class="auth-divider">or</div>
 
       <button class="google-login" onclick="window.location.href='/auth/google'">
         <img src="https://www.gstatic.com/images/branding/product/1x/gsa_512dp.png" width="20" alt="Google">
@@ -489,13 +1349,147 @@
     </div>
   </div>
 
+  <!-- Settings Modal -->
+  <div id="settings-overlay" class="settings-overlay hidden" onclick="if(event.target===this)closeSettings()">
+    <div class="settings-modal">
+      <div class="settings-header">
+        <h2><i data-lucide="settings" size="20" style="vertical-align: middle; margin-right: 8px;"></i>Settings</h2>
+        <button class="settings-close" onclick="closeSettings()"><i data-lucide="x" size="16"></i></button>
+      </div>
+
+      <div class="settings-body">
+        <!-- Profile -->
+        <div class="settings-section">
+          <div class="settings-section-title"><i data-lucide="user" size="14"></i> Profile</div>
+          <div class="settings-avatar-section">
+            <div class="settings-avatar" id="settings-avatar">?</div>
+            <div>
+              <div style="font-weight:600;" id="settings-display-name">User</div>
+              <div style="font-size:0.8rem; color:var(--text-secondary);" id="settings-display-email">user@email.com</div>
+            </div>
+          </div>
+          <div class="settings-row">
+            <div>
+              <div class="settings-row-label">Display Name</div>
+              <div class="settings-row-desc">Shown in the header and chat</div>
+            </div>
+            <input id="settings-name" class="settings-input" placeholder="Your name" />
+          </div>
+          <div class="settings-row">
+            <div>
+              <div class="settings-row-label">Email</div>
+              <div class="settings-row-desc">Your account email</div>
+            </div>
+            <input id="settings-email" class="settings-input" placeholder="you@email.com" />
+          </div>
+        </div>
+
+        <!-- Appearance -->
+        <div class="settings-section">
+          <div class="settings-section-title"><i data-lucide="palette" size="14"></i> Appearance</div>
+          <div class="settings-row">
+            <div>
+              <div class="settings-row-label">Theme</div>
+              <div class="settings-row-desc">Switch between dark and light mode</div>
+            </div>
+            <select id="settings-theme" class="settings-select" onchange="applyThemeSetting(this.value)">
+              <option value="dark">Dark</option>
+              <option value="light">Light</option>
+            </select>
+          </div>
+          <div class="settings-row">
+            <div>
+              <div class="settings-row-label">Font Size</div>
+              <div class="settings-row-desc">Adjust chat text size</div>
+            </div>
+            <select id="settings-font-size" class="settings-select" onchange="applyFontSize(this.value)">
+              <option value="small">Small</option>
+              <option value="medium" selected>Medium</option>
+              <option value="large">Large</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Chat Preferences -->
+        <div class="settings-section">
+          <div class="settings-section-title"><i data-lucide="message-square" size="14"></i> Chat Preferences</div>
+          <div class="settings-row">
+            <div>
+              <div class="settings-row-label">Show Thought Process</div>
+              <div class="settings-row-desc">Display AI thinking steps in responses</div>
+            </div>
+            <label class="toggle-switch">
+              <input type="checkbox" id="settings-show-thinking" checked />
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+          <div class="settings-row">
+            <div>
+              <div class="settings-row-label">Send on Enter</div>
+              <div class="settings-row-desc">Press Enter to send messages</div>
+            </div>
+            <label class="toggle-switch">
+              <input type="checkbox" id="settings-enter-send" checked />
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+          <div class="settings-row">
+            <div>
+              <div class="settings-row-label">Notification Sounds</div>
+              <div class="settings-row-desc">Play sound when response is ready</div>
+            </div>
+            <label class="toggle-switch">
+              <input type="checkbox" id="settings-sounds" />
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Danger Zone -->
+        <div class="settings-section">
+          <div class="settings-section-title" style="color:#ef4444;"><i data-lucide="alert-triangle" size="14"></i> Danger Zone</div>
+          <div class="settings-row">
+            <div>
+              <div class="settings-row-label">Clear All Data</div>
+              <div class="settings-row-desc">Delete all chat history and uploaded files</div>
+            </div>
+            <button class="settings-btn settings-btn-danger" onclick="clearAllData()">Clear Data</button>
+          </div>
+          <div class="settings-row">
+            <div>
+              <div class="settings-row-label">Sign Out</div>
+              <div class="settings-row-desc">Log out of your account</div>
+            </div>
+            <button class="settings-btn settings-btn-danger" onclick="logout()">Sign Out</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="settings-footer">
+        <button class="settings-btn" style="background:var(--input-bg); color:var(--text-secondary); border:1px solid var(--border);" onclick="closeSettings()">Cancel</button>
+        <button class="settings-btn settings-btn-primary" onclick="saveSettings()">Save Changes</button>
+      </div>
+    </div>
+  </div>
+
   <div class="app-container">
     <!-- Sidebar -->
     <aside class="sidebar">
-      <div class="logo"><i data-lucide="zap"></i> Vault AI</div>
+      <div class="logo"><div class="logo-icon"><i data-lucide="zap" size="18"></i></div> Vault AI</div>
+
+      <!-- Chat History Panel -->
+      <div class="chat-history-section">
+        <button class="btn-new-chat" onclick="newChat()">
+          <i data-lucide="plus" size="15"></i> New Chat
+        </button>
+        <div class="section-title"><i data-lucide="message-square" size="12"></i> Recent Chats</div>
+        <div class="session-list" id="session-list">
+          <!-- Sessions loaded here -->
+        </div>
+      </div>
       
       <div>
-        <div class="section-title"><i data-lucide="folder" size="14"></i> Folders</div>
+        <div class="section-title"><i data-lucide="folder" size="12"></i> Folders</div>
         <div class="folder-controls">
           <select id="folder-list" class="select-custom"></select>
           <div class="input-group">
@@ -506,17 +1500,19 @@
       </div>
 
       <div style="display: flex; flex-direction: column; flex: 1;">
-        <div class="section-title"><i data-lucide="file-text" size="14"></i> Files</div>
+        <div class="section-title"><i data-lucide="file-text" size="12"></i> Files</div>
         <div class="file-list-container" id="file-list">
           <!-- Files appended here -->
         </div>
         
-        <div style="margin-top: 24px;">
+        <div style="margin-top: auto; padding-top: 12px;">
           <input type="file" id="file-picker" multiple class="hidden" onchange="updateFileNameText()"/>
-          <button onclick="document.getElementById('file-picker').click()" class="input-custom" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer; border-style: dashed; background: rgba(255,255,255,0.02);">
-            <i data-lucide="upload-cloud" size="18"></i> <span id="file-count-text">Select files</span>
-          </button>
-          <button onclick="uploadFiles()" style="width: 100%; margin-top: 8px; padding: 12px; background: var(--btn-upload-bg); border-radius: 10px; border: none; color: var(--btn-upload-text); font-weight: 600; cursor: pointer;">
+          <div class="upload-zone" onclick="document.getElementById('file-picker').click()">
+            <i data-lucide="upload-cloud" size="20" class="upload-zone-icon"></i>
+            <span class="upload-zone-text" id="file-count-text">Drop or click to select files</span>
+          </div>
+          <button onclick="uploadFiles()" class="btn-upload">
+            <i data-lucide="arrow-up-circle" size="15" style="vertical-align: middle; margin-right: 4px;"></i>
             Upload to Vault
           </button>
         </div>
@@ -526,27 +1522,37 @@
     <!-- Main Content -->
     <main class="chat-area">
       <header class="header">
-        <div style="font-weight: 600; font-size: 1.1rem;" id="current-folder-display">Document Vault</div>
+        <div class="header-title">
+          <div class="header-title-dot"></div>
+          <span id="current-folder-display">Document Vault</span>
+        </div>
         <div class="user-profile">
-          <button id="theme-btn" class="theme-toggle" onclick="toggleTheme()" title="Toggle Light/Dark Theme">
-            <i data-lucide="sun" class="sun-icon"></i>
-            <i data-lucide="moon" class="moon-icon hidden"></i>
+          <button id="theme-btn" class="theme-toggle" onclick="toggleTheme()" title="Toggle Theme">
+            <i data-lucide="sun" class="sun-icon" size="16"></i>
+            <i data-lucide="moon" class="moon-icon hidden" size="16"></i>
           </button>
           
-          <div id="user-info-display" class="hidden" style="text-align: right;">
-            <div style="font-size: 0.9rem; font-weight: 600;" id="user-name">Guest</div>
-            <div style="font-size: 0.75rem; color: var(--text-secondary);" id="user-email">guest@example.com</div>
+          <div id="user-info-display" class="hidden" style="text-align: right; margin-right: 4px;">
+            <div style="font-size: 0.82rem; font-weight: 600;" id="user-name">Guest</div>
+            <div style="font-size: 0.7rem; color: var(--text-secondary);" id="user-email">guest@example.com</div>
           </div>
-          <div class="avatar" id="user-avatar">?</div>
-          <button id="logout-btn" class="btn-icon" style="background: transparent; color: #ef4444; width: auto; height: auto;"><i data-lucide="log-out" size="18"></i></button>
+          <div class="avatar" id="user-avatar" style="cursor:pointer;" onclick="openSettings()" title="Settings">?</div>
+          <button class="header-btn" onclick="openSettings()" title="Settings"><i data-lucide="settings" size="16"></i></button>
+          <button id="clear-history-btn" class="header-btn" title="Clear chat"><i data-lucide="trash-2" size="16"></i></button>
         </div>
       </header>
 
       <div id="msgs" class="messages">
-        <!-- Messages appended here -->
-        <div class="msg bot">
-          <div style="font-weight: 600; margin-bottom: 8px; color: var(--accent);">Vault AI 3.0</div>
-          Welcome! Upload your PDFs, receipts, or documents and ask me anything. I can read images and even complex tables using my advanced vision and logic.
+        <!-- Welcome -->
+        <div class="welcome-msg" id="welcome-msg">
+          <div class="welcome-icon"><i data-lucide="sparkles" size="28"></i></div>
+          <div class="welcome-title">Vault AI</div>
+          <div class="welcome-sub">Upload your documents and ask me anything. I can analyze PDFs, images, spreadsheets, and more with advanced AI.</div>
+          <div class="welcome-chips">
+            <div class="welcome-chip" onclick="document.getElementById('input').value='Summarize my documents';document.getElementById('input').focus();">Summarize docs</div>
+            <div class="welcome-chip" onclick="document.getElementById('input').value='What are the key points?';document.getElementById('input').focus();">Key points</div>
+            <div class="welcome-chip" onclick="document.getElementById('input').value='Compare the files';document.getElementById('input').focus();">Compare files</div>
+          </div>
         </div>
       </div>
 
@@ -554,7 +1560,7 @@
         <div class="input-wrapper">
           <input id="input" placeholder="Ask about your documents..." autocomplete="off">
           <button id="send" class="btn-send">
-            Send <i data-lucide="send" size="16"></i>
+            <i data-lucide="arrow-up" size="18"></i>
           </button>
         </div>
       </div>
@@ -566,6 +1572,22 @@
     let TOKEN = "";
     let USER_NAME = "";
     let USER_EMAIL = "";
+    let currentSessionId = null;
+
+    // --- Toast Notification System ---
+    function showToast(message, type = 'info') {
+      const container = document.getElementById('toast-container');
+      const toast = document.createElement('div');
+      toast.className = `toast toast-${type}`;
+      const icons = { success: 'check-circle', error: 'alert-circle', info: 'info' };
+      toast.innerHTML = `<i data-lucide="${icons[type] || 'info'}" size="16"></i> ${message}`;
+      container.appendChild(toast);
+      lucide.createIcons({ nodes: [toast] });
+      setTimeout(() => {
+        toast.classList.add('toast-exit');
+        setTimeout(() => toast.remove(), 300);
+      }, 3000);
+    }
 
     // --- Theme System ---
     function initTheme() {
@@ -617,6 +1639,7 @@
       document.getElementById("user-email").innerText = USER_EMAIL;
       document.getElementById("user-avatar").innerText = USER_NAME[0].toUpperCase();
       loadFolders();
+      loadSessions();
     }
 
     function logout() {
@@ -646,10 +1669,11 @@
           localStorage.setItem('userName', USER_NAME);
           localStorage.setItem('userEmail', USER_EMAIL);
           showAuthSuccess();
+          showToast('Welcome back, ' + USER_NAME + '!', 'success');
         } else {
-          alert("Invalid credentials.");
+          showToast('Invalid credentials. Please try again.', 'error');
         }
-      } catch (e) { alert("Error: " + e.message); }
+      } catch (e) { showToast('Connection error: ' + e.message, 'error'); }
     }
 
     async function loadFolders() {
@@ -671,6 +1695,7 @@
       });
       document.getElementById("new-folder-name").value = "";
       loadFolders();
+      showToast('Folder created!', 'success');
     }
 
     async function loadFiles() {
@@ -693,7 +1718,7 @@
 
     function updateFileNameText() {
         const files = document.getElementById('file-picker').files;
-        document.getElementById('file-count-text').innerText = files.length > 0 ? `${files.length} files selected` : `Select files`;
+        document.getElementById('file-count-text').innerText = files.length > 0 ? `${files.length} file${files.length > 1 ? 's' : ''} selected` : `Drop or click to select files`;
     }
 
     async function deleteFile(fileName) {
@@ -704,6 +1729,7 @@
         headers: { "Authorization": `Bearer ${TOKEN}` }
       });
       loadFiles();
+      showToast('File deleted', 'info');
     }
 
     async function uploadFiles() {
@@ -723,6 +1749,7 @@
         document.getElementById('file-picker').value = "";
         updateFileNameText();
         loadFiles();
+        showToast('Files uploaded successfully!', 'success');
       }
     }
 
@@ -743,15 +1770,19 @@
         const thoughtContent = thoughtMatch[1].trim();
         const finalAnswer = rawText.replace(/<thinking>[\s\S]*?<\/thinking>/, "").trim();
         
-        let formattedThinking = `
-          <div class="thought-container">
-            <div class="thought-header" onclick="this.nextElementSibling.classList.toggle('hidden')">
-              <i data-lucide="brain"></i> Thought Process <i data-lucide="chevron-down" size="14" style="margin-left:auto"></i>
-            </div>
-            <div class="thought-content hidden">
-              ${thoughtContent.replace(/\n/g, '<br>')}
-            </div>
-          </div>`;
+        const showThinking = localStorage.getItem('showThinking') !== 'false';
+        let formattedThinking = '';
+        if (showThinking) {
+          formattedThinking = `
+            <div class="thought-container">
+              <div class="thought-header" onclick="this.nextElementSibling.classList.toggle('hidden')">
+                <i data-lucide="brain"></i> Thought Process <i data-lucide="chevron-down" size="14" style="margin-left:auto"></i>
+              </div>
+              <div class="thought-content hidden">
+                ${thoughtContent.replace(/\n/g, '<br>')}
+              </div>
+            </div>`;
+        }
         
         return `${formattedThinking}<div>${finalAnswer.replace(/\n/g, '<br>')}</div>`;
       }
@@ -764,12 +1795,21 @@
       const folder = document.getElementById("folder-list").value;
       if (!text) return;
       inputEl.value = "";
+
+      // Hide welcome message on first send
+      const welcome = document.getElementById("welcome-msg");
+      if (welcome) welcome.remove();
+
       addMsg(text, "user");
       
-      const loadingDiv = addMsg('<span class="pulse">Generating response...</span>', "bot", true);
+      const loadingDiv = addMsg('<div class="typing-indicator"><div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div></div>', "bot", true);
       
       try {
-        const payload = { message: text, docs_dir: folder ? `user_vaults/${TOKEN}/${folder}` : null };
+        const payload = {
+          message: text,
+          session_id: currentSessionId,
+          docs_dir: folder ? `user_vaults/${TOKEN}/${folder}` : null
+        };
         const r = await fetch(`${API_BASE}/chat`, {
           method: "POST",
           headers: { "Content-Type": "application/json", "Authorization": `Bearer ${TOKEN}` },
@@ -778,23 +1818,235 @@
         const data = await r.json();
         loadingDiv.remove();
         if (data.answer) {
+            // Track session id returned by the server
+            if (data.session_id && data.session_id !== currentSessionId) {
+              currentSessionId = data.session_id;
+              loadSessions();
+            }
             addMsg(formatResponse(data.answer), "bot", true);
             initLucide();
         }
       } catch (e) {
-        loadingDiv.innerHTML = `<span style="color:#ef4444">Error: ${e.message}</span>`;
+        loadingDiv.remove();
+        showToast('Failed to get response: ' + e.message, 'error');
+      }
+    }
+
+    // ── Session & History Management ──
+
+    async function loadSessions() {
+      try {
+        const r = await fetch(`${API_BASE}/sessions`, {
+          headers: { "Authorization": `Bearer ${TOKEN}` }
+        });
+        if (!r.ok) return;
+        const sessions = await r.json();
+        const container = document.getElementById("session-list");
+        if (sessions.length === 0) {
+          container.innerHTML = '<div style="padding:8px 12px; font-size:0.8rem; color:var(--text-secondary); opacity:0.6;">No conversations yet</div>';
+          initLucide();
+          return;
+        }
+        container.innerHTML = sessions.map(s => `
+          <div class="session-item ${s.id === currentSessionId ? 'active' : ''}" onclick="loadSession('${s.id}')">
+            <i data-lucide="message-circle" size="14" style="flex-shrink:0"></i>
+            <span class="session-title">${escapeHtml(s.title)}</span>
+            <button class="session-delete" onclick="event.stopPropagation(); deleteSessionUI('${s.id}')" title="Delete">
+              <i data-lucide="x" size="12"></i>
+            </button>
+          </div>
+        `).join("");
+        initLucide();
+      } catch (e) {
+        console.error("Failed to load sessions:", e);
+      }
+    }
+
+    function escapeHtml(text) {
+      const d = document.createElement('div');
+      d.textContent = text;
+      return d.innerHTML;
+    }
+
+    async function loadSession(sessionId) {
+      currentSessionId = sessionId;
+      // Highlight the active session
+      document.querySelectorAll('.session-item').forEach(el => el.classList.remove('active'));
+      const active = document.querySelector(`.session-item[onclick*="${sessionId}"]`);
+      if (active) active.classList.add('active');
+
+      // Clear chat area
+      const msgs = document.getElementById("msgs");
+      msgs.innerHTML = '';
+
+      try {
+        const r = await fetch(`${API_BASE}/chat/history/${sessionId}`, {
+          headers: { "Authorization": `Bearer ${TOKEN}` }
+        });
+        if (!r.ok) return;
+        const messages = await r.json();
+        for (const msg of messages) {
+          if (msg.role === "user") {
+            addMsg(msg.content, "user");
+          } else {
+            addMsg(formatResponse(msg.content), "bot", true);
+          }
+        }
+        initLucide();
+      } catch (e) {
+        console.error("Failed to load session:", e);
+      }
+    }
+
+    function newChat() {
+      currentSessionId = null;
+      const msgs = document.getElementById("msgs");
+      msgs.innerHTML = `
+        <div class="welcome-msg" id="welcome-msg">
+          <div class="welcome-icon"><i data-lucide="sparkles" size="28"></i></div>
+          <div class="welcome-title">Vault AI</div>
+          <div class="welcome-sub">Upload your documents and ask me anything. I can analyze PDFs, images, spreadsheets, and more with advanced AI.</div>
+          <div class="welcome-chips">
+            <div class="welcome-chip" onclick="document.getElementById('input').value='Summarize my documents';document.getElementById('input').focus();">Summarize docs</div>
+            <div class="welcome-chip" onclick="document.getElementById('input').value='What are the key points?';document.getElementById('input').focus();">Key points</div>
+            <div class="welcome-chip" onclick="document.getElementById('input').value='Compare the files';document.getElementById('input').focus();">Compare files</div>
+          </div>
+        </div>`;
+      document.querySelectorAll('.session-item').forEach(el => el.classList.remove('active'));
+      initLucide();
+    }
+
+    async function deleteSessionUI(sessionId) {
+      if (!confirm("Delete this conversation?")) return;
+      try {
+        await fetch(`${API_BASE}/sessions/${sessionId}`, {
+          method: "DELETE",
+          headers: { "Authorization": `Bearer ${TOKEN}` }
+        });
+        if (currentSessionId === sessionId) newChat();
+        loadSessions();
+        showToast('Conversation deleted', 'info');
+      } catch (e) {
+        showToast('Failed to delete: ' + e.message, 'error');
+      }
+    }
+
+    async function clearHistory() {
+      if (!confirm("Clear ALL chat history?")) return;
+      try {
+        await fetch(`${API_BASE}/chat/history`, {
+          method: "DELETE",
+          headers: { "Authorization": `Bearer ${TOKEN}` }
+        });
+        newChat();
+        loadSessions();
+        showToast('Chat history cleared', 'info');
+      } catch (e) {
+        showToast('Failed to clear history: ' + e.message, 'error');
+      }
+    }
+
+    // ── Settings ──
+
+    function openSettings() {
+      document.getElementById('settings-name').value = USER_NAME;
+      document.getElementById('settings-email').value = USER_EMAIL;
+      document.getElementById('settings-avatar').textContent = USER_NAME[0].toUpperCase();
+      document.getElementById('settings-display-name').textContent = USER_NAME;
+      document.getElementById('settings-display-email').textContent = USER_EMAIL;
+
+      // Sync theme dropdown
+      const currentTheme = document.body.classList.contains('light-mode') ? 'light' : 'dark';
+      document.getElementById('settings-theme').value = currentTheme;
+
+      // Sync font size
+      document.getElementById('settings-font-size').value = localStorage.getItem('fontSize') || 'medium';
+
+      // Sync toggles
+      document.getElementById('settings-show-thinking').checked = localStorage.getItem('showThinking') !== 'false';
+      document.getElementById('settings-enter-send').checked = localStorage.getItem('enterSend') !== 'false';
+      document.getElementById('settings-sounds').checked = localStorage.getItem('sounds') === 'true';
+
+      document.getElementById('settings-overlay').classList.remove('hidden');
+      initLucide();
+    }
+
+    function closeSettings() {
+      document.getElementById('settings-overlay').classList.add('hidden');
+    }
+
+    function saveSettings() {
+      // Profile
+      const newName = document.getElementById('settings-name').value.trim();
+      const newEmail = document.getElementById('settings-email').value.trim();
+      if (newName) {
+        USER_NAME = newName;
+        localStorage.setItem('userName', USER_NAME);
+        document.getElementById('user-name').textContent = USER_NAME;
+        document.getElementById('user-avatar').textContent = USER_NAME[0].toUpperCase();
+      }
+      if (newEmail) {
+        USER_EMAIL = newEmail;
+        localStorage.setItem('userEmail', USER_EMAIL);
+        document.getElementById('user-email').textContent = USER_EMAIL;
+      }
+
+      // Toggles
+      localStorage.setItem('showThinking', document.getElementById('settings-show-thinking').checked);
+      localStorage.setItem('enterSend', document.getElementById('settings-enter-send').checked);
+      localStorage.setItem('sounds', document.getElementById('settings-sounds').checked);
+
+      closeSettings();
+      showToast('Settings saved', 'success');
+    }
+
+    function applyThemeSetting(value) {
+      const isLight = document.body.classList.contains('light-mode');
+      if ((value === 'light' && !isLight) || (value === 'dark' && isLight)) {
+        toggleTheme();
+      }
+    }
+
+    function applyFontSize(size) {
+      localStorage.setItem('fontSize', size);
+      const msgs = document.getElementById('msgs');
+      msgs.style.fontSize = size === 'small' ? '0.85rem' : size === 'large' ? '1.1rem' : '0.95rem';
+    }
+
+    function initFontSize() {
+      const size = localStorage.getItem('fontSize') || 'medium';
+      applyFontSize(size);
+    }
+
+    async function clearAllData() {
+      if (!confirm('This will delete ALL your chat history. Are you sure?')) return;
+      try {
+        await fetch(`${API_BASE}/chat/history`, {
+          method: 'DELETE',
+          headers: { 'Authorization': `Bearer ${TOKEN}` }
+        });
+        newChat();
+        loadSessions();
+        closeSettings();
+        showToast('All data cleared', 'info');
+      } catch (e) {
+        showToast('Failed: ' + e.message, 'error');
       }
     }
 
     // Event Listeners
     document.getElementById("login-btn").onclick = login;
     document.getElementById("send").onclick = send;
-    document.getElementById("input").onkeydown = (e) => { if(e.key === "Enter") send(); };
+    document.getElementById("input").onkeydown = (e) => {
+      const enterSend = localStorage.getItem('enterSend') !== 'false';
+      if (e.key === 'Enter' && enterSend) send();
+    };
     document.getElementById("folder-list").onchange = loadFiles;
-    document.getElementById("logout-btn").onclick = logout;
+    document.getElementById("clear-history-btn").onclick = clearHistory;
     
     window.addEventListener('DOMContentLoaded', () => {
       initTheme();
+      initFontSize();
       initLucide();
       if (!checkExistingLogin()) {
         document.getElementById("auth-overlay").classList.remove("hidden");
