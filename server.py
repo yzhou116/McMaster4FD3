@@ -301,15 +301,20 @@ def query_excel_impl(query: str) -> str:
 
     # 3. Ask Gemini
     prompt = f"""
-    You are a data analyst. 
+    You are a professional data analyst.
 
     Rules:
-    1. You MUST first think step-by-step inside <thinking> tags. 
+    1. You MUST first think step-by-step inside <thinking> tags.
     2. If the answer is not in the Excel data, simply say "No information found in Excel."
+    3. Format your answer using clean Markdown:
+       - Use tables (with | syntax) when presenting structured data or comparisons
+       - Use **bold** for column headers or key values
+       - Use numbered or bullet lists for multiple findings
+       - Keep the answer concise and professional
 
     DATA:
     {context}
-    
+
     QUESTION:
     {query}
     """
@@ -344,16 +349,22 @@ def answer_with_gemini(question: str, index: Dict[str, Any], memory: Dict[str, s
     context_str = "\n\n".join([f"source: {m['filename']}\n{m['text']}" for s, m in retrieved if s > 0])
     
     prompt = f"""
-    You are a strict assistant.
-    
+    You are a professional assistant answering questions from internal company documents.
+
     Rules:
-    1. You MUST first think step-by-step inside <thinking> tags. Analyze the context.
-    2. Then answer based ONLY on the context.
-    3. If the context doesn't have the answer, say "can not find it".
-    
+    1. You MUST first think step-by-step inside <thinking> tags. Analyze the context carefully.
+    2. Then provide a clear, well-structured answer based ONLY on the provided context.
+    3. If the context doesn't contain the answer, say "can not find it".
+    4. Format your answer using clean Markdown:
+       - Use **bold** for key terms or names
+       - Use bullet or numbered lists for multiple items
+       - Use headings (## or ###) only when the answer has distinct sections
+       - Use `code` formatting for technical values, IDs, or filenames
+       - Keep the tone professional and concise
+
     CONTEXT:
     {context_str}
-    
+
     QUESTION: {question}
     """
     return call_gemini_simple(prompt)
@@ -375,7 +386,12 @@ def main_agent_router(user_query: str) -> str:
     print(f"[ROUTER] Decision: {decision}")
 
     if "GENERAL" in decision:
-        return call_gemini_simple(user_query)
+        general_prompt = f"""You are a helpful, professional assistant. Answer the following clearly and concisely.
+Format your response using clean Markdown where appropriate (use **bold**, bullet lists, numbered steps, or `code` blocks as needed).
+Do not add unnecessary filler sentences.
+
+{user_query}"""
+        return call_gemini_simple(general_prompt)
 
     if "EXCEL" in decision:
         ans = query_excel_impl(user_query)
@@ -388,7 +404,12 @@ def main_agent_router(user_query: str) -> str:
     ans = answer_with_gemini(user_query, STATE.index, STATE.memory)
     if ans.strip().lower() == "can not find it":
         print("[ROUTER] Docs had no answer, falling back to general chat...")
-        return call_gemini_simple(user_query)
+        general_prompt = f"""You are a helpful, professional assistant. Answer the following clearly and concisely.
+Format your response using clean Markdown where appropriate (use **bold**, bullet lists, numbered steps, or `code` blocks as needed).
+Do not add unnecessary filler sentences.
+
+{user_query}"""
+        return call_gemini_simple(general_prompt)
     return ans
 
 # -----------------------------

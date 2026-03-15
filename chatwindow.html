@@ -10,6 +10,8 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
   <!-- Icons -->
   <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- Markdown renderer -->
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
   
   <style>
     :root {
@@ -654,6 +656,89 @@
     }
 
     /* --- Thinking Process --- */
+    /* --- Markdown body inside bot messages --- */
+    .md-body { }
+    .md-body > *:first-child { margin-top: 0; }
+    .md-body > *:last-child { margin-bottom: 0; }
+    .msg.bot .md-body h1,
+    .msg.bot .md-body h2,
+    .msg.bot .md-body h3 {
+      font-family: 'Outfit', sans-serif;
+      font-weight: 700;
+      margin: 14px 0 6px;
+      line-height: 1.3;
+      color: var(--text-primary);
+    }
+    .msg.bot .md-body h1 { font-size: 1.2rem; }
+    .msg.bot .md-body h2 { font-size: 1.05rem; border-bottom: 1px solid var(--border); padding-bottom: 4px; }
+    .msg.bot .md-body h3 { font-size: 0.97rem; }
+    .msg.bot .md-body p { margin: 0 0 10px; line-height: 1.7; }
+    .msg.bot .md-body p:last-child { margin-bottom: 0; }
+    .msg.bot .md-body ul,
+    .msg.bot .md-body ol { margin: 4px 0 10px 20px; padding: 0; }
+    .msg.bot .md-body li { margin: 5px 0; line-height: 1.6; }
+    .msg.bot .md-body code {
+      font-family: 'Fira Mono', 'Consolas', monospace;
+      font-size: 0.84em;
+      background: rgba(99, 102, 241, 0.13);
+      color: #a5b4fc;
+      padding: 2px 6px;
+      border-radius: 5px;
+    }
+    .msg.bot .md-body pre {
+      background: rgba(0, 0, 0, 0.40);
+      border-radius: 10px;
+      padding: 14px 16px;
+      overflow-x: auto;
+      margin: 10px 0;
+      border: 1px solid var(--glass-border);
+    }
+    .msg.bot .md-body pre code {
+      background: none;
+      color: #e2e8f0;
+      padding: 0;
+      font-size: 0.82rem;
+      line-height: 1.6;
+    }
+    .msg.bot .md-body table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 10px 0;
+      font-size: 0.87rem;
+    }
+    .msg.bot .md-body th {
+      background: rgba(99, 102, 241, 0.15);
+      padding: 8px 12px;
+      text-align: left;
+      font-weight: 600;
+      border: 1px solid var(--glass-border);
+    }
+    .msg.bot .md-body td {
+      padding: 7px 12px;
+      border: 1px solid var(--glass-border);
+    }
+    .msg.bot .md-body tr:nth-child(even) { background: rgba(255,255,255,0.025); }
+    .msg.bot .md-body blockquote {
+      border-left: 3px solid var(--accent);
+      margin: 10px 0;
+      padding: 6px 14px;
+      color: var(--text-secondary);
+      font-style: italic;
+      background: rgba(99, 102, 241, 0.06);
+      border-radius: 0 8px 8px 0;
+    }
+    .msg.bot .md-body hr {
+      border: none;
+      border-top: 1px solid var(--border);
+      margin: 14px 0;
+    }
+    .msg.bot .md-body a {
+      color: #818cf8;
+      text-decoration: none;
+    }
+    .msg.bot .md-body a:hover { text-decoration: underline; }
+    .msg.bot .md-body strong { font-weight: 700; color: var(--text-primary); }
+
     .thought-container {
       margin-bottom: 12px;
       background: var(--thought-bg);
@@ -1784,12 +1869,15 @@
       return div;
     }
 
+    // Configure marked once
+    marked.setOptions({ breaks: true, gfm: true });
+
     function formatResponse(rawText) {
       const thoughtMatch = rawText.match(/<thinking>([\s\S]*?)<\/thinking>/);
       if (thoughtMatch) {
         const thoughtContent = thoughtMatch[1].trim();
         const finalAnswer = rawText.replace(/<thinking>[\s\S]*?<\/thinking>/, "").trim();
-        
+
         const showThinking = localStorage.getItem('showThinking') !== 'false';
         let formattedThinking = '';
         if (showThinking) {
@@ -1798,15 +1886,15 @@
               <div class="thought-header" onclick="this.nextElementSibling.classList.toggle('hidden')">
                 <i data-lucide="brain"></i> Thought Process <i data-lucide="chevron-down" size="14" style="margin-left:auto"></i>
               </div>
-              <div class="thought-content hidden">
-                ${thoughtContent.replace(/\n/g, '<br>')}
+              <div class="thought-content hidden md-body">
+                ${marked.parse(thoughtContent)}
               </div>
             </div>`;
         }
-        
-        return `${formattedThinking}<div>${finalAnswer.replace(/\n/g, '<br>')}</div>`;
+
+        return `${formattedThinking}<div class="md-body">${marked.parse(finalAnswer)}</div>`;
       }
-      return rawText.replace(/\n/g, '<br>');
+      return `<div class="md-body">${marked.parse(rawText)}</div>`;
     }
 
     async function send() {
