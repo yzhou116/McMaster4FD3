@@ -10,8 +10,10 @@ load_dotenv()
 
 SUPABASE_URL = os.getenv("SUPABASE_URL", "")
 SUPABASE_KEY = os.getenv("SUPABASE_KEY", "")
+SUPABASE_SERVICE_KEY = os.getenv("SUPABASE_SERVICE_KEY", "")
 
 _client: Optional[Client] = None
+_storage_client: Optional[Client] = None
 
 
 def get_db() -> Client:
@@ -23,6 +25,17 @@ def get_db() -> Client:
             )
         _client = create_client(SUPABASE_URL, SUPABASE_KEY)
     return _client
+
+
+def get_storage_db() -> Client:
+    """Return a client that uses the service_role key so Storage RLS is bypassed."""
+    global _storage_client
+    if _storage_client is None:
+        key = SUPABASE_SERVICE_KEY or SUPABASE_KEY
+        if not SUPABASE_URL or not key:
+            raise RuntimeError("SUPABASE_URL and SUPABASE_SERVICE_KEY must be set in .env")
+        _storage_client = create_client(SUPABASE_URL, key)
+    return _storage_client
 
 
 # ── Chat Sessions ─────────────────────────────────────────────
@@ -173,10 +186,10 @@ def storage_upload(folder: str, filename: str, data: bytes, content_type: str = 
     """Upload a file to the shared-vault bucket at folder/filename."""
     path = f"{folder}/{filename}"
     try:
-        get_db().storage.from_(STORAGE_BUCKET).remove([path])
+        get_storage_db().storage.from_(STORAGE_BUCKET).remove([path])
     except Exception:
         pass
-    get_db().storage.from_(STORAGE_BUCKET).upload(
+    get_storage_db().storage.from_(STORAGE_BUCKET).upload(
         path=path,
         file=data,
         file_options={"content-type": content_type, "upsert": "true"},
@@ -185,18 +198,18 @@ def storage_upload(folder: str, filename: str, data: bytes, content_type: str = 
 
 def storage_delete(folder: str, filename: str):
     """Delete a file from the shared-vault bucket."""
-    get_db().storage.from_(STORAGE_BUCKET).remove([f"{folder}/{filename}"])
+    get_storage_db().storage.from_(STORAGE_BUCKET).remove([f"{folder}/{filename}"])
 
 
 def storage_download(folder: str, filename: str) -> bytes:
     """Download a file's raw bytes from the shared-vault bucket."""
-    return get_db().storage.from_(STORAGE_BUCKET).download(f"{folder}/{filename}")
+    return get_storage_db().storage.from_(STORAGE_BUCKET).download(f"{folder}/{filename}")
 
 
 def storage_list_folders() -> list:
     """List all top-level 'folders' (prefixes) in the bucket."""
     try:
-        items = get_db().storage.from_(STORAGE_BUCKET).list()
+        items = get_storage_db().storage.from_(STORAGE_BUCKET).list()
         return [item["name"] for item in items if item.get("id") is None]
     except Exception:
         return []
@@ -205,7 +218,7 @@ def storage_list_folders() -> list:
 def storage_list_files(folder: str) -> list:
     """List filenames inside a folder in the bucket."""
     try:
-        items = get_db().storage.from_(STORAGE_BUCKET).list(folder)
+        items = get_storage_db().storage.from_(STORAGE_BUCKET).list(folder)
         return [item["name"] for item in items if item.get("id") is not None]
     except Exception:
         return []
